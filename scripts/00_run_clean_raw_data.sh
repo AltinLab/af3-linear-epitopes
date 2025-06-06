@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --job-name=clean_raw_data
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=lwoods@tgen.org
+#SBATCH --ntasks=1
+#SBATCH --mem=64G
+#SBATCH -c 1
+#SBATCH --time=1:00:00
+#SBATCH --output=tmp/nextflow/clean_raw_data.%j.log
+
+. ./scripts/setup.sh
+
+nextflow run \
+    ./workflows/00_clean_raw_data.nf \
+        -resume
