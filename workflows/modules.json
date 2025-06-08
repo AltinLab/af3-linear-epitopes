@@ -1,0 +1,26 @@
+{
+  "name": "Lawson Woods",
+  "homePage": "",
+  "repos": {
+    "git@github.com:ljwoods2/af3-nf-tools.git": {
+      "modules": {
+        "tgen": {
+          "af3": {
+            "branch": "main",
+            "git_sha": "71d513a140c89a804e211c9e778f8ba1b4c7bfbb",
+            "installed_by": ["modules"]
+          }
+        }
+      },
+      "subworkflows": {
+        "tgen": {
+          "af3": {
+            "branch": "main",
+            "git_sha": "05d9c8b919548a3ec07e4e9aabcb691fab2c0f85",
+            "installed_by": ["subworkflows"]
+          }
+        }
+      }
+    }
+  }
+}

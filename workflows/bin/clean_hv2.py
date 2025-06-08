@@ -33,10 +33,14 @@ if __name__ == "__main__":
         .filter(pl.col("Category") == "PV1")
     ).select("raw_peptide_id", "peptide")
 
-    hv2_df = generate_job_name(hv2_df, ["peptide"], name="job_name").select(
-        "job_name",
-        "peptide",
-        "raw_peptide_id",
+    hv2_df = (
+        generate_job_name(hv2_df, ["peptide"], name="job_name")
+        .select(
+            "job_name",
+            "peptide",
+            "raw_peptide_id",
+        )
+        .sort(by="raw_peptide_id")
     )
 
     if hv2_df.select("peptide").unique().height != hv2_df.height:

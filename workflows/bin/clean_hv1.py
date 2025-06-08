@@ -48,10 +48,14 @@ if __name__ == "__main__":
         # don't keep focal protein id (for now)- we will manually find it later
     ).select("raw_peptide_id", "peptide")
 
-    hv1_df = generate_job_name(hv1_df, ["peptide"], name="job_name").select(
-        "job_name",
-        "peptide",
-        "raw_peptide_id",
+    hv1_df = (
+        generate_job_name(hv1_df, ["peptide"], name="job_name")
+        .select(
+            "job_name",
+            "peptide",
+            "raw_peptide_id",
+        )
+        .sort(by="raw_peptide_id")
     )
 
     if hv1_df.select("peptide").unique().height != hv1_df.height:

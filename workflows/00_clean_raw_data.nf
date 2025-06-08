@@ -84,7 +84,7 @@ process CLEAN_FOCAL_PROTEIN {
   cpus 1
   memory '3 GB'
   clusterOptions '--nodes=1 --ntasks=1 --time=01:00:00'
-  publishDir "$params.data_dir/focal_protein", mode: 'copy'
+  publishDir "$params.data_dir/focal_protein/staged", mode: 'copy'
   conda "envs/env.yaml"
 
   input:

@@ -36,8 +36,10 @@ if __name__ == "__main__":
         pl.col("raw_protein_id").alias("raw_protein_ids"),
     )
 
-    protein_df = generate_job_name(
-        protein_df, ["seq"], name="job_name"
-    ).select("job_name", "seq", "raw_protein_ids")
+    protein_df = (
+        generate_job_name(protein_df, ["seq"], name="job_name")
+        .select("job_name", "seq", "raw_protein_ids")
+        .sort(by="job_name")
+    )
 
     protein_df.write_parquet(args.output_path)

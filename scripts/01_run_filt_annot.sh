@@ -10,6 +10,11 @@
 
 . ./scripts/setup.sh
 
+# env vars
+export NXF_LOG_FILE=tmp/nextflow/hv/filt_annot/nextflow.log
+export NXF_CACHE_DIR=tmp/nextflow/hv/filt_annot/
+
+
 nextflow run \
     ./workflows/01_filt_annot.nf \
         -resume

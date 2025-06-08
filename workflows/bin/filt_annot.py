@@ -18,23 +18,13 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-e",
-        "--epitope_path",
+        "-p",
+        "--peptide_path",
         type=str,
     )
     parser.add_argument(
-        "-oe",
-        "--output_epitope_path",
-        type=str,
-    )
-    parser.add_argument(
-        "-n",
-        "--non_epitope_path",
-        type=str,
-    )
-    parser.add_argument(
-        "-on",
-        "--output_non_epitope_path",
+        "-op",
+        "--output_peptide_path",
         type=str,
     )
     parser.add_argument(
@@ -50,8 +40,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    e_df = pl.read_parquet(args.epitope_path)
-    ne_df = pl.read_parquet(args.non_epitope_path)
+    p_df = pl.read_parquet(args.peptide_path)
+    e_df = p_df.filter(pl.col("epitope"))
+    ne_df = p_df.filter(~pl.col("epitope"))
+
     fp_df = pl.read_parquet(args.focal_protein_path)
 
     ne_df = ne_df.join(e_df.select("peptide"), on="peptide", how="anti")
@@ -123,7 +115,9 @@ if __name__ == "__main__":
 
     # filter focal proteins down to only the proteins that contain >1 epitope and >=1 nonepitope
     # this is a control
-    fp_df = fp_df.join(match_df_all.select("job_name"), on="job_name")
+    fp_df = fp_df.join(match_df_all.select("job_name"), on="job_name").sort(
+        by="job_name"
+    )
 
     # annotate epitope and nonepitope df with the job_names and indices into those job_names
     e_annot_filt = (
@@ -158,6 +152,7 @@ if __name__ == "__main__":
 
     ne_df = ne_df.join(ne_annot_filt, on="peptide")
 
-    e_df.write_parquet(args.output_epitope_path)
-    ne_df.write_parquet(args.output_non_epitope_path)
+    p_df = pl.concat([e_df, ne_df], how="vertical").sort(by="raw_peptide_id")
+
+    p_df.write_parquet(args.output_peptide_path)
     fp_df.write_parquet(args.output_focal_protein_path)
