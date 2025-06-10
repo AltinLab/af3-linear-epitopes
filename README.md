@@ -23,7 +23,7 @@ Install the nextflow and project environments:
 
 ```bash
 # project environment
-conda create --name <name> --file envs/env.yaml
+conda env create --name <name> --file envs/env.yaml
 # nf-core/nextflow env 
-conda create --name <name> --file envs/nf-core.yaml
+conda env create --name <name> --file envs/nf-core.yaml
 ```

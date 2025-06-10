@@ -1,9 +1,5 @@
 process SEQ_LIST_TO_FASTA {
-    queue       'compute'
-    executor    "slurm"
-    cpus        1
-    memory      '1GB'
-    clusterOptions '--nodes=1 --ntasks=1 --time=00:10:00'
+    label "process_local"
 
     input:
       tuple val(meta), val(seq_list)
@@ -26,10 +22,8 @@ process SEQ_LIST_TO_FASTA {
 }
 
 process FILTER_MISSING_MSA {
-    queue 'compute'
-    executor "slurm"
+    label "process_local"
     tag "${meta.protein_type}-${meta.id}"
-    debug true
 
     input:
     tuple val(meta), path(fasta)
@@ -53,13 +47,12 @@ process FILTER_MISSING_MSA {
         python ${moduleDir}/resources/usr/bin/filter_missing_msa.py \\
             -t "${meta.protein_type}" \\
             -f "$fasta" \\
-            -o "${fasta.getSimpleName()}.filt.fasta"
+            -o "${fasta.getSimpleName()}.filt.json"
     """
 }
 
 process COMPOSE_EMPTY_MSA_JSON {
-    queue 'compute'
-    executor "slurm"
+    label "process_local"
     tag "${meta.protein_type}-${meta.id}"
 
     input:
@@ -84,12 +77,40 @@ process COMPOSE_EMPTY_MSA_JSON {
     """
  }
 
+process FILT_FORMAT_MSA {
+    label "process_local"
+    tag "${meta.protein_type}-${meta.id}"
+
+    input:
+    tuple val(meta), path(fasta)
+
+    output:
+    tuple val(meta), path("*.json"), optional: true
+
+
+    script:
+    """
+    module load singularity
+
+    export SINGULARITYENV_VAST_S3_ACCESS_KEY_ID="\$VAST_S3_ACCESS_KEY_ID"
+    export SINGULARITYENV_VAST_S3_SECRET_ACCESS_KEY="\$VAST_S3_SECRET_ACCESS_KEY"
+
+    singularity exec --nv \\
+        -B /home,/scratch,/tgen_labs --cleanenv \\
+        /tgen_labs/altin/alphafold3/containers/msa-db.sif \\
+        python ${moduleDir}/resources/usr/bin/filt_format_msa.py \\
+            -t "${meta.protein_type}" \\
+            -f "$fasta" \\
+            -o "${fasta.getSimpleName()}.filt.json"
+    """
+}
+
 process RUN_MSA {
     queue 'compute'
     cpus '8'
     memory '64GB'
     executor "slurm"
-    clusterOptions '--time=4:00:00'
+    clusterOptions '--time=12:00:00'
     tag "${meta.protein_type}-${meta.id}"
 
     input:
@@ -118,8 +139,7 @@ process RUN_MSA {
 
 
 process STORE_MSA {
-    queue 'compute'
-    executor "slurm"
+    label "process_local"
     tag "${meta.protein_type}-${meta.id}"
     
     input:
@@ -147,8 +167,7 @@ process STORE_MSA {
 
 
 process COMPOSE_INFERENCE_JSON {
-    queue 'compute'
-    executor "slurm"
+    label "process_local"
     tag "${meta.id}"
 
     input:
@@ -228,8 +247,7 @@ process BATCHED_INFERENCE {
 }
 
 process CLEAN_INFERENCE_DIR {
-    queue 'compute'
-    executor "slurm"
+    label "process_local"
     tag "clean_inference"
     publishDir "${params.outdir}", mode: 'copy'
 

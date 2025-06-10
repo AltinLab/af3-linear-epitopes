@@ -1,6 +1,9 @@
 #!/bin/bash
 
+# load CONDA_ROOT
+. .env
+
 # load module for nextflow
-. /tgen_labs/altin/miniconda3/etc/profile.d/conda.sh
+. $CONDA_ROOT/etc/profile.d/conda.sh
 
 conda activate nf-core

@@ -37,19 +37,19 @@ export NXF_CACHE_DIR=tmp/nextflow/test/inference/
 #     ./workflows/02_msa_peptide.nf \
 #     --data_dir ./data/test \
 #     -resume && \
-# nextflow run \
-#     ./workflows/02_msa_focal_protein.nf \
-#     --data_dir ./data/test \
-#     -resume
-
-
 nextflow run \
-    ./workflows/02_inference_peptide.nf \
-        --data_dir ./data/test \
-        --seeds 1,2 
+    ./workflows/02_msa_focal_protein.nf \
+    --data_dir ./data/test \
+    -resume
+
+
+# nextflow run \
+#     ./workflows/02_inference_peptide.nf \
+#         --outdir ./data/test/peptide \
+#         --seeds 1,2 
 
 # nextflow run \
 #     ./workflows/02_inference_focal_protein.nf \
-#         --data_dir ./data/test \
+#         --outdir ./data/test/focal_protein \
 #          --seeds 1,2 \
 #         -resume 

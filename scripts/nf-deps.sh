@@ -12,11 +12,15 @@ if [[ "$action" != "install" && "$action" != "update" ]]; then
   exit 1
 fi
 
-# Run the desired action for both subworkflows and modules
+preview_flag=""
+if [ "$action" = update ]; then
+  preview_flag="--no-preview"
+fi
+
 nf-core subworkflows \
   --git-remote git@github.com:ljwoods2/af3-nf-tools.git \
-  $action af3 --dir workflows --no-preview
+  $action af3 --dir workflows $preview_flag
 
 nf-core modules \
   --git-remote git@github.com:ljwoods2/af3-nf-tools.git \
-  $action af3 --dir workflows --no-preview
+  $action af3 --dir workflows $preview_flag
