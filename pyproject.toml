@@ -22,4 +22,4 @@ line-length = 88
 max-line-length = 88
 
 [tool.setuptools]
-package-dir = {"" = "src"}wokrflowscripts
+package-dir = {"" = "src"}
