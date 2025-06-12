@@ -6,7 +6,7 @@
 #SBATCH --mem=64G
 #SBATCH -c 1
 #SBATCH --time=1:00:00
-#SBATCH --output=tmp/nextflow/filt_annot.%j.log
+#SBATCH --output=tmp/nextflow/hv/filt_annot.%j.log
 
 . ./scripts/setup.sh
 
