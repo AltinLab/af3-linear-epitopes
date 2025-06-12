@@ -6,7 +6,7 @@
 #SBATCH --mem=64G
 #SBATCH -c 1
 #SBATCH --time=1:00:00
-#SBATCH --output=tmp/nextflow/clean_raw_data.%j.log
+#SBATCH --output=tmp/nextflow/hv/clean_raw_data.%j.log
 
 . ./scripts/setup.sh
 

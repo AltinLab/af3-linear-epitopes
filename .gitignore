@@ -116,7 +116,9 @@ poetry.lock
 **/inference
 **/.nextflow
 **/*.log*
+
 # notebooks
 **/.ipynb
+
 # scratch
 tmp/
