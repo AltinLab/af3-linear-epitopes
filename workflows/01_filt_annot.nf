@@ -7,12 +7,12 @@ process FILT_AND_ANNOT {
     conda "envs/env.yaml"
 
     publishDir(
-        path: {"$params.data_dir/peptide/staged"},
+        path: {"$params.data_dir/$params.dset_name/peptide/staged"},
         pattern: "${peptide.getSimpleName()}*",
         mode: 'copy'
     )
     publishDir(
-        path: {"$params.data_dir/focal_protein/staged"},
+        path: {"$params.data_dir/$params.dset_name/focal_protein/staged"},
         pattern: "${focal_protein.getSimpleName()}*",
         mode: 'copy'
     )
@@ -41,8 +41,8 @@ process FILT_AND_ANNOT {
 workflow {
 
     FILT_AND_ANNOT(
-        Channel.fromPath("$params.data_dir/peptide/staged/*.cleaned.parquet"),
-        Channel.fromPath("$params.data_dir/focal_protein/staged/*.cleaned.parquet"),
+        Channel.fromPath("$params.data_dir/$params.dset_name/peptide/staged/*.cleaned.parquet"),
+        Channel.fromPath("$params.data_dir/$params.dset_name/focal_protein/staged/*.cleaned.parquet"),
     )
 
 }

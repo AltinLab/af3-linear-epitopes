@@ -17,4 +17,5 @@ export NXF_CACHE_DIR=tmp/nextflow/hv/filt_annot/
 
 nextflow run \
     ./workflows/01_filt_annot.nf \
+        --dset_name hv \
         -resume

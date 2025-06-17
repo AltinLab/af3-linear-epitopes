@@ -118,7 +118,7 @@ poetry.lock
 **/*.log*
 
 # notebooks
-**/.ipynb
+**/*.ipynb
 
 # scratch
-tmp/
+tmp
