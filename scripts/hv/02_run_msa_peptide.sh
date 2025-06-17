@@ -17,4 +17,5 @@ export NXF_CACHE_DIR=tmp/nextflow/hv/peptide/msa/
 
 nextflow run \
     ./workflows/02_msa_peptide.nf \
+    --dset_name hv \
     -resume

@@ -7,7 +7,7 @@
         "tgen": {
           "af3": {
             "branch": "main",
-            "git_sha": "6310ae6f884416dacb3ed19ec25c33eb9b562f31",
+            "git_sha": "8701df5af98841c1dbffdee69bc47ecd6959ba36",
             "installed_by": ["modules"]
           }
         }

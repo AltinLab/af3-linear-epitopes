@@ -101,7 +101,7 @@ process FILT_FORMAT_MSA {
         python ${moduleDir}/resources/usr/bin/filt_format_msa.py \\
             -t "${meta.protein_type}" \\
             -f "$fasta" \\
-            -o "${fasta.getSimpleName()}.filt.json"
+            -o "${fasta.getSimpleName()}.filt.fasta"
     """
 }
 
@@ -110,7 +110,7 @@ process RUN_MSA {
     cpus '8'
     memory '64GB'
     executor "slurm"
-    clusterOptions '--time=12:00:00'
+    clusterOptions '--time=8:00:00'
     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     maxRetries 5
     tag "${meta.protein_type}-${meta.id}"
@@ -172,6 +172,8 @@ process STORE_MSA {
 
 process COMPOSE_INFERENCE_JSON {
     label "process_local"
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
     tag "${meta.id}"
 
     input:
@@ -204,7 +206,7 @@ process COMPOSE_INFERENCE_JSON {
         python ${moduleDir}/resources/usr/bin/compose_inference_JSON.py \\
             -jn "${meta.id}" \\
             -f "$fasta" \\
-            -pt "${meta.protein_types.join(' ')}" \\
+            -pt "${meta.protein_types.join(',')}" \\
             ${skip_msa_arg} \\
             ${seeds} 
     """
@@ -253,6 +255,8 @@ process BATCHED_INFERENCE {
 process CLEAN_INFERENCE_DIR {
     label "process_local"
     tag "clean_inference"
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
     publishDir "${params.outdir}", mode: 'copy'
 
     input:

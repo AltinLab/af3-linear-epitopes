@@ -15,5 +15,5 @@ export NXF_LOG_FILE=tmp/nextflow/hv/clean_raw_data/nextflow.log
 export NXF_CACHE_DIR=tmp/nextflow/hv/clean_raw_data/
 
 nextflow run \
-    ./workflows/00_clean_raw_data.nf \
+    ./workflows/00_clean_raw_data.hv.nf \
         -resume
