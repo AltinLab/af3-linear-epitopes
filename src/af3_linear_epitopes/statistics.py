@@ -9,13 +9,123 @@ from pathlib import Path
 CHUNKSIZE = 15
 
 
-def statistics(dataset, path):
-    Mean_dataset = pl_mean(dataset, path)
-    Min_mean_dataset = pl_min(Mean_dataset, path)
-    return pl_std(Min_mean_dataset, path)
+def statistics_9mer(dataset, path):
+    mean_dataset_9mer = pl_mean_9mer(dataset, path)
+    min_mean_dataset_9mer = pl_min_9mer(mean_dataset_9mer, path)
+    return pl_std_9mer(min_mean_dataset_9mer, path)
 
 
-def bar_graph(dataset, path):
+def peptide_9mer(dataset, path):
+    col_list = []
+    for j in range(0, len(dataset.select("peptide"))):
+        peptide_30mer = dataset.select("peptide")[j, 0]
+        nine_mer_seq = []
+        for i in range(0, 23):
+            nine_mer_seq.append(peptide_30mer[i : i + 8])
+        col_list.append(nine_mer_seq)
+    dataset = dataset.with_columns(pl.Series(col_list).alias("9mer_seq"))
+    return dataset
+
+
+def mean_func_9mer(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    pLDDT = af3.get_mda_universe().atoms.select_atoms("name CA").tempfactors
+    pLDDT_9mer = []
+    for i in range(0, 23):
+        pLDDT_9mer.append(pLDDT[i : i + 8].mean())
+
+    row["9mer_Mean_pLDDT"] = pLDDT_9mer
+    return row
+
+
+def pl_mean_9mer(dataset, path):
+    mean_dataset = split_apply_combine(
+        dataset, mean_func_9mer, path, chunksize=CHUNKSIZE
+    )
+    return mean_dataset
+
+
+def min_func_9mer(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    pLDDT = af3.get_mda_universe().atoms.select_atoms("name CA").tempfactors
+    pLDDT_9mer = []
+    for i in range(0, 23):
+        pLDDT_9mer.append(pLDDT[i : i + 8].min())
+
+    row["9mer_min_pLDDT"] = pLDDT_9mer
+    return row
+
+
+def pl_min_9mer(dataset, path):
+    min_dataset = split_apply_combine(dataset, min_func_9mer, path, chunksize=CHUNKSIZE)
+    return min_dataset
+
+
+def std_func_9mer(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    pLDDT = af3.get_mda_universe().atoms.select_atoms("name CA").tempfactors
+    pLDDT_9mer = []
+    for i in range(0, 23):
+        pLDDT_9mer.append(pLDDT[i : i + 8].std())
+
+    row["9mer_std_pLDDT"] = pLDDT_9mer
+    return row
+
+
+def pl_std_9mer(dataset, path):
+    std_dataset = split_apply_combine(dataset, std_func_9mer, path, chunksize=CHUNKSIZE)
+    return std_dataset
+
+
+# Now working with PAE values
+def pae_statistics(dataset, path):
+    mean_dataset_pae = pl_pae_mean(dataset, path)
+    min_mean_dataset_pae = pl_pae_min(mean_dataset_pae, path)
+    return pl_pae_std(min_mean_dataset_pae, path)
+
+
+def pae_mean_func(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    u = af3.get_mda_universe()
+    residx = u.residues[0:30].resindices
+    row["mean_PAE_values"] = af3.get_pae_ndarr()[residx].mean()
+    return row
+
+
+def pl_pae_mean(dataset, path):
+    mean_dataset = split_apply_combine(
+        dataset, pae_mean_func, path, chunksize=CHUNKSIZE
+    )
+    return mean_dataset
+
+
+def pae_min_func(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    u = af3.get_mda_universe()
+    residx = u.residues[0:30].resindices
+    row["min_PAE_values"] = af3.get_pae_ndarr()[residx].min()
+    return row
+
+
+def pl_pae_min(dataset, path):
+    min_dataset = split_apply_combine(dataset, pae_min_func, path, chunksize=CHUNKSIZE)
+    return min_dataset
+
+
+def pae_std_func(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    u = af3.get_mda_universe()
+    residx = u.residues[0:30].resindices
+    row["std_PAE_values"] = af3.get_pae_ndarr()[residx].std()
+    return row
+
+
+def pl_pae_std(dataset, path):
+    std_dataset = split_apply_combine(dataset, pae_std_func, path, chunksize=CHUNKSIZE)
+    return std_dataset
+
+
+"""def bar_graph(dataset, path):
     required_cols = ["job_name", "Mean_pLDDT", "Min_pLDDT", "Std_pLDDT"]
     # Check if all required columns for plotting are present in the DataFrame
     if not all(col in dataset.columns for col in required_cols):
@@ -41,17 +151,12 @@ def bar_graph(dataset, path):
         )
         return
 
-    # Set up the bar positions for grouped bars
-    bar_width = 0.2  # Width of each individual bar within a group
+    bar_width = 0.2
     # The x locations for the groups of bars (one group for each job_name)
     index = np.arange(n_jobs)
 
-    # Create the figure and axes for the plot
-    # Adjust figure width dynamically based on the number of jobs to prevent overcrowding
     fig, ax = plt.subplots(figsize=(max(10, n_jobs * bar_width * 5), 7))
 
-    # Plot the bars for Mean, Minimum, and Standard Deviation
-    # Bars are offset to group them visually around each x-tick (job_name)
     bar1 = ax.bar(
         index - bar_width, mean_values, bar_width, label="Mean pLDDT", color="skyblue"
     )
@@ -70,16 +175,15 @@ def bar_graph(dataset, path):
     def autolabel(bars):
         for bar in bars:
             height = bar.get_height()
-            # Position the text slightly above the bar for clarity
             ax.annotate(
-                f"{height:.2f}",  # Format the value to two decimal places
+                f"{height:.2f}",
                 xy=(bar.get_x() + bar.get_width() / 2, height),
-                xytext=(0, 3),  # 3 points vertical offset from the top of the bar
+                xytext=(0, 3),
                 textcoords="offset points",
                 ha="center",
                 va="bottom",
                 fontsize=9,
-            )  # Center horizontally, align to bottom
+            )
 
     # Apply autolabel to each set of bars
     autolabel(bar1)
@@ -90,16 +194,20 @@ def bar_graph(dataset, path):
     ax.set_xlabel("Job Name", fontsize=12)
     ax.set_ylabel("pLDDT Value", fontsize=12)
     ax.set_title("pLDDT Statistics per Job", fontsize=16)
-    ax.set_xticks(index)  # Set x-ticks at the center of each group
-    # Rotate x-tick labels for better readability if job names are long
-    ax.set_xticklabels(job_names, rotation=45, ha="right", fontsize=10)
-    ax.legend()  # Display the legend for identifying Mean, Min, Std Dev bars
-    ax.grid(
-        axis="y", linestyle="--", alpha=0.7
-    )  # Add a horizontal grid for easier value comparison
+    ax.set_xticks(index)
 
-    plt.tight_layout()  # Adjust layout to prevent labels/elements from overlapping
-    plt.show()  # Display the generated plot
+    ax.set_xticklabels(job_names, rotation=45, ha="right", fontsize=10)
+    ax.legend()
+    ax.grid(axis="y", linestyle="--", alpha=0.7)
+
+    plt.tight_layout()
+    plt.show()"""
+
+
+def statistics(dataset, path):
+    mean_dataset = pl_mean(dataset, path)
+    min_mean_dataset = pl_min(mean_dataset, path)
+    return pl_std(min_mean_dataset, path)
 
 
 # Is the functions that appends the mean column to the dataset
