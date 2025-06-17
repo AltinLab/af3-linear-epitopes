@@ -6,7 +6,7 @@
 #SBATCH --mem=64G
 #SBATCH --time=5-00:00:00
 #SBATCH -c 16
-#SBATCH --output=tmp/nextflow/hv/peptide/inference.%j.log
+#SBATCH --output=tmp/nextflow/hv/focal_protein/inference.%j.log
 
 . ./scripts/setup.sh
 
@@ -15,7 +15,6 @@ export NXF_LOG_FILE=tmp/nextflow/hv/focal_protein/inference/nextflow.log
 export NXF_CACHE_DIR=tmp/nextflow/hv/focal_protein/inference/
 
 nextflow run \
-    ./workflows/02_inference_focal_protein.nf \
+    ./workflows/03_inference_focal_protein.nf \
         --dset_name hv \
-        --seeds 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20 \
-        -resume 
+        --seeds 1,2,3,4,5,6,7,8,9,10 

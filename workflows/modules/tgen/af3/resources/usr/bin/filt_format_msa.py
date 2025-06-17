@@ -91,6 +91,8 @@ def is_msa_stored(protein_type, seq, db_url):
 
         if result.shape[0] == 0:
             return False
+
+        print(f"Found\n{result}")
         return True
 
 
@@ -111,12 +113,17 @@ if __name__ == "__main__":
         required=True,
         help="Output file",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        required=False,
+    )
     args = parser.parse_args()
     seq = read_fasta_seqs(args.fasta)[0]
 
     database = "https://pub-vscratch.vast.rc.tgen.org"
 
-    if not is_msa_stored(args.protein_type, seq, database):
+    if args.force or not is_msa_stored(args.protein_type, seq, database):
 
         with open(args.output, "w") as f:
             json_dict = {

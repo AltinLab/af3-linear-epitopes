@@ -16,4 +16,5 @@ export NXF_CACHE_DIR=tmp/nextflow/hv/clean_raw_data/
 
 nextflow run \
     ./workflows/00_clean_raw_data.hv.nf \
+        --dset_name hv \
         -resume

@@ -1,3 +1,7 @@
+// default value, should be overridden (unless testing)
+params.dset_name = "test"
+
+
 process CLEAN_HV1 {
   queue 'compute'
   executor "slurm"
@@ -49,7 +53,7 @@ process COMBINE_HV {
   cpus 1
   memory '3 GB'
   clusterOptions '--nodes=1 --ntasks=1 --time=01:00:00'
-  publishDir "$params.dset_name/peptide/staged", mode: 'copy'
+  publishDir "$params.data_dir/$params.dset_name/peptide/staged", mode: 'copy'
   conda "envs/env.yaml"
 
   input:
@@ -84,7 +88,7 @@ process CLEAN_FOCAL_PROTEIN {
   cpus 1
   memory '3 GB'
   clusterOptions '--nodes=1 --ntasks=1 --time=01:00:00'
-  publishDir "$params.dset_name/focal_protein/staged", mode: 'copy'
+  publishDir "$params.data_dir/$params.dset_name/focal_protein/staged", mode: 'copy'
   conda "envs/env.yaml"
 
   input:
