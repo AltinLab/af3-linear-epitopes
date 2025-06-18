@@ -21,35 +21,35 @@ process SEQ_LIST_TO_FASTA {
     """
 }
 
-process FILTER_MISSING_MSA {
-    label "process_local"
-    tag "${meta.protein_type}-${meta.id}"
+// process FILTER_MISSING_MSA {
+//     label "process_local"
+//     tag "${meta.protein_type}-${meta.id}"
 
-    input:
-    tuple val(meta), path(fasta)
+//     input:
+//     tuple val(meta), path(fasta)
 
-    output:
-    tuple val(meta), path("*.fasta"), optional: true
+//     output:
+//     tuple val(meta), path("*.fasta"), optional: true
 
 
-    script:
-    """
-    module load singularity
+//     script:
+//     """
+//     module load singularity
 
-    fname=\$(uuidgen).csv
+//     fname=\$(uuidgen).csv
 
-    export SINGULARITYENV_VAST_S3_ACCESS_KEY_ID="\$VAST_S3_ACCESS_KEY_ID"
-    export SINGULARITYENV_VAST_S3_SECRET_ACCESS_KEY="\$VAST_S3_SECRET_ACCESS_KEY"
+//     export SINGULARITYENV_VAST_S3_ACCESS_KEY_ID="\$VAST_S3_ACCESS_KEY_ID"
+//     export SINGULARITYENV_VAST_S3_SECRET_ACCESS_KEY="\$VAST_S3_SECRET_ACCESS_KEY"
 
-    singularity exec --nv \\
-        -B /home,/scratch,/tgen_labs --cleanenv \\
-        /tgen_labs/altin/alphafold3/containers/msa-db.sif \\
-        python ${moduleDir}/resources/usr/bin/filter_missing_msa.py \\
-            -t "${meta.protein_type}" \\
-            -f "$fasta" \\
-            -o "${fasta.getSimpleName()}.filt.json"
-    """
-}
+//     singularity exec --nv \\
+//         -B /home,/scratch,/tgen_labs --cleanenv \\
+//         /tgen_labs/altin/alphafold3/containers/msa-db.sif \\
+//         python ${moduleDir}/resources/usr/bin/filter_missing_msa.py \\
+//             -t "${meta.protein_type}" \\
+//             -f "$fasta" \\
+//             -o "${fasta.getSimpleName()}.filt.json"
+//     """
+// }
 
 process COMPOSE_EMPTY_MSA_JSON {
     label "process_local"
@@ -89,6 +89,7 @@ process FILT_FORMAT_MSA {
 
 
     script:
+    def force = params.force_update_msa ? "--force" : ''
     """
     module load singularity
 
@@ -101,7 +102,8 @@ process FILT_FORMAT_MSA {
         python ${moduleDir}/resources/usr/bin/filt_format_msa.py \\
             -t "${meta.protein_type}" \\
             -f "$fasta" \\
-            -o "${fasta.getSimpleName()}.filt.json"
+            -o "${fasta.getSimpleName()}.filt.json" \\
+            ${force} 
     """
 }
 
@@ -110,7 +112,9 @@ process RUN_MSA {
     cpus '8'
     memory '64GB'
     executor "slurm"
-    clusterOptions '--time=12:00:00'
+    clusterOptions '--time=8:00:00'
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
     tag "${meta.protein_type}-${meta.id}"
 
     input:
@@ -140,6 +144,8 @@ process RUN_MSA {
 
 process STORE_MSA {
     label "process_local"
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
     tag "${meta.protein_type}-${meta.id}"
     
     input:
@@ -168,6 +174,8 @@ process STORE_MSA {
 
 process COMPOSE_INFERENCE_JSON {
     label "process_local"
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
     tag "${meta.id}"
 
     input:
@@ -249,6 +257,8 @@ process BATCHED_INFERENCE {
 process CLEAN_INFERENCE_DIR {
     label "process_local"
     tag "clean_inference"
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
     publishDir "${params.outdir}", mode: 'copy'
 
     input:

@@ -116,9 +116,9 @@ poetry.lock
 **/inference
 **/.nextflow
 **/*.log*
+
 # notebooks
-**/.ipynb
+**/*.ipynb
+
 # scratch
-tmp/
-# parquet files 
-**/*.parquet
+tmp
