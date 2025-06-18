@@ -1,31 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     custom_cell_magics: kql
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.17.2
-#   kernelspec:
-#     display_name: linear-epitope
-#     language: python
-#     name: python3
-# ---
-
-# %% [markdown]
-# ### Overall data structure:
-#
-# "Focal proteins" are the original proteins where the 30-mer peptides came from
-# "Peptides" refer to the 30-mer peptides that either are or are not epitopes (reactive)
-#
-# Inference (predicted AF3 structures and confidences) is available for both peptides and focal proteins
-
-# %%
-# %load_ext autoreload
-# %autoreload 2
-
-# %%
 import polars as pl
 
 # this one is my package
@@ -33,62 +5,18 @@ from mdaf3.AF3OutputParser import AF3Output
 from mdaf3.FeatureExtraction import *
 import matplotlib.pyplot as plt
 import numpy as np
-
+from sklearn.metrics import roc_curve, auc
 from pathlib import Path
+from af3_linear_epitopes import statistics as st
 
 # import dataframes from "staged" directory
 fp_test_dat = pl.read_parquet(
-    "../data/hv/focal_protein/staged/00_focal_protein.filt.parquet"
+    "/scratch/sromero/af3-linear-epitopes/data/hv/focal_protein/staged/00_focal_protein.filt.parquet"
 )
-peptide_test_dat = pl.read_parquet("../data/hv/peptide/staged/00_hv.filt.parquet")
-
-# %% [markdown]
-# ## Dataframe structure
-
-# %% [markdown]
-# ### Focal protein dataframe
-#
-# Cols:
-# - job_name: name of the af3 job, use it to retreive af3 output object
-# - seq: the full protein sequence from which the peptides (30mers) came
-# - raw_protein_id: john's original identifier for the protein (stored in list because original data contains some dupes)
-
-# %%
-fp_test_dat
-
-# %% [markdown]
-# ### Peptide dataframe
-#
-# Cols:
-# - job_name: name of the af3 job, use it to retreive af3 output object
-# - peptide: the 30mer sequence
-# - raw_protein_id: john's original identifier for the peptide
-# - epitope: whether or not john's assay (pepseq) detected reactivity against the peptide
-# - fp_job_names: list of job_names in the focal proteins dataframe that contain this row's 30-mer peptide
-# - fp_seq_idxs: at each index in the list fp_job_names, this list contains a list of integer offsets where the 30-mer peptide appears
-
-# %%
-peptide_test_dat
-
-# %%
-from af3_linear_epitopes import statistics as st
-
-all_statistics = st.statistics(
-    peptide_test_dat,
-    "/tgen_labs/altin/alphafold3/runs/linear_peptide/data/hv/peptide/inference",
+all_statistics = pl.read_parquet(
+    "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/staged/01_hv.features.parquet"
 )
 
-
-"""
-st.bar_graph(
-    all_statistics,
-    "/scratch/sromero/af3-linear-epitopes/data/test/focal_protein/inference",
-)"""
-
-# %%
-print(all_statistics)
-
-# %%
 true_mean = (
     all_statistics.filter(pl.col("epitope"))
     .select(pl.col("Mean_pLDDT"))
@@ -106,7 +34,6 @@ false_mean = (
 )
 avg_false_mean = sum(false_mean) / len(false_mean)
 
-# %%
 true_std = (
     all_statistics.filter(pl.col("epitope"))
     .select(pl.col("Std_pLDDT"))
@@ -123,7 +50,6 @@ false_std = (
 )
 avg_false_std = sum(false_std) / len(false_std)
 
-# %%
 true_min = (
     all_statistics.filter(pl.col("epitope"))
     .select(pl.col("Min_pLDDT"))
@@ -158,7 +84,6 @@ print(
 )
 
 
-# %%
 def plot_epitope_non_epitope_stats(
     avg_true_mean: float,
     avg_true_min: float,
@@ -186,8 +111,8 @@ def plot_epitope_non_epitope_stats(
     std_values = [avg_true_std, avg_false_std]
 
     # Set up bar positions
-    x = np.arange(len(categories))
-    width = 0.25
+    x = np.arange(len(categories))  # the label locations
+    width = 0.25  # the width of the bars
 
     fig, ax = plt.subplots(figsize=(10, 7))
 
@@ -214,7 +139,7 @@ def plot_epitope_non_epitope_stats(
 
     # Add labels, title, and custom x-axis tick labels
     ax.set_ylabel("pLDDT Value", fontsize=12)
-    ax.set_title("pLDDT Statistics: Epitopes vs Non-Epitopes", fontsize=16)
+    ax.set_title("pLDDT Statistics 30-mer: Epitopes vs Non-Epitopes", fontsize=16)
     ax.set_xticks(x)
     ax.set_xticklabels(categories, fontsize=12)
     ax.legend()
@@ -227,7 +152,7 @@ def plot_epitope_non_epitope_stats(
             ax.annotate(
                 f"{height:.2f}",
                 xy=(rect.get_x() + rect.get_width() / 2, height),
-                xytext=(0, 3),
+                xytext=(0, 3),  # 3 points vertical offset
                 textcoords="offset points",
                 ha="center",
                 va="bottom",
@@ -254,25 +179,6 @@ pLDDT_statistics_30mer.savefig(
     "../results/figures/pLDDT_statistics_30mer_epitope_vs_non-epitopes.png"
 )
 
-# %%
-all_statistics = st.peptide_9mer(
-    all_statistics,
-    "/tgen_labs/altin/alphafold3/runs/linear_peptide/data/hv/peptide/inference",
-)
-
-# %%
-all_statistics = st.statistics_9mer(
-    all_statistics,
-    "/tgen_labs/altin/alphafold3/runs/linear_peptide/data/hv/peptide/inference",
-)
-
-# %%
-st.pae_statistics(
-    all_statistics,
-    "/tgen_labs/altin/alphafold3/runs/linear_peptide/data/hv/peptide/inference",
-)
-
-# %%
 true_mean_min_9mer = (
     all_statistics.filter(pl.col("epitope"))
     .select(pl.col("9mer_Mean_pLDDT").list.min())
@@ -343,7 +249,6 @@ print(
 )
 
 
-# %%
 def plot_epitope_non_epitope_stats_9mer(
     avg_true_mean_min_9mer: float,
     avg_true_min_min_9mer: float,
@@ -371,8 +276,8 @@ def plot_epitope_non_epitope_stats_9mer(
     std_values = [avg_true_std_min_9mer, avg_false_std_min_9mer]
 
     # Set up bar positions
-    x = np.arange(len(categories))
-    width = 0.25
+    x = np.arange(len(categories))  # the label locations
+    width = 0.25  # the width of the bars
 
     fig, ax = plt.subplots(figsize=(10, 7))
 
@@ -399,7 +304,7 @@ def plot_epitope_non_epitope_stats_9mer(
 
     # Add labels, title, and custom x-axis tick labels
     ax.set_ylabel("pLDDT Value", fontsize=12)
-    ax.set_title("pLDDT Statistics: Epitopes vs Non-Epitopes", fontsize=16)
+    ax.set_title("pLDDT Statistics 9-mer: Epitopes vs Non-Epitopes", fontsize=16)
     ax.set_xticks(x)
     ax.set_xticklabels(categories, fontsize=12)
     ax.legend()
@@ -412,7 +317,7 @@ def plot_epitope_non_epitope_stats_9mer(
             ax.annotate(
                 f"{height:.2f}",
                 xy=(rect.get_x() + rect.get_width() / 2, height),
-                xytext=(0, 3),
+                xytext=(0, 3),  # 3 points vertical offset
                 textcoords="offset points",
                 ha="center",
                 va="bottom",
@@ -439,6 +344,30 @@ pLDDT_avg_9mer.savefig(
     "../results/figures/pLDDT_statistics_9mer_epitope_vs_non-epitopes.png"
 )
 
-# %%
+y_hat = st.normalized_pLDDT_30mer(all_statistics, "Mean_pLDDT")
+print(y_hat)
 
-# %%
+y = all_statistics.select("epitope").to_series()
+print(y)
+
+mean_of_30mer = st.plot_auc_roc_curve(y, y_hat, "Mean of 30-mear ROC")
+
+mean_of_30mer.savefig("../results/figures/pLDDT_ROC_mean_30mers.png")
+
+all_statistics = all_statistics.with_columns(
+    pl.col("9mer_Mean_pLDDT").list.min().alias("Min_of_means_9mer")
+)
+
+
+all_statistics = all_statistics.with_columns(
+    pl.col("9mer_Mean_pLDDT").list.max().alias("Max_of_means_9mer")
+)
+
+
+y_hat_min = st.normalized_pLDDT_30mer(all_statistics, "Min_of_means_9mer")
+min_roc_9mer = st.plot_auc_roc_curve(y, y_hat_min, "Min 9-mer ROC")
+min_roc_9mer.savefig("../results/figures/pLDDT_ROC_min_9mers.png")
+
+y_hat_max = st.normalized_pLDDT_30mer(all_statistics, "Max_of_means_9mer")
+max_roc_9mer = st.plot_auc_roc_curve(y, y_hat_max, "Max 9-mer ROC")
+max_roc_9mer.savefig("../results/figures/pLDDT_ROC_max_9mers.png")

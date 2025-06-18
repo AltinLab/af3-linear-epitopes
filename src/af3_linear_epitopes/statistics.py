@@ -4,6 +4,7 @@ import numpy as np
 from mdaf3.FeatureExtraction import *
 from mdaf3.AF3OutputParser import AF3Output
 from pathlib import Path
+from sklearn.metrics import roc_curve, auc
 
 # adds the basic statistic data(ex: mean, min, and standard deviation) to the dataset
 CHUNKSIZE = 15
@@ -17,11 +18,12 @@ def statistics_9mer(dataset, path):
 
 def peptide_9mer(dataset, path):
     col_list = []
-    for j in range(0, len(dataset.select("peptide"))):
-        peptide_30mer = dataset.select("peptide")[j, 0]
+    peptides = dataset.select("peptide").to_series()
+    for j in range(0, len(peptides)):
+        peptide_30mer = peptides[j]
         nine_mer_seq = []
-        for i in range(0, 23):
-            nine_mer_seq.append(peptide_30mer[i : i + 8])
+        for i in range(0, 22):
+            nine_mer_seq.append(peptide_30mer[i : i + 9])
         col_list.append(nine_mer_seq)
     dataset = dataset.with_columns(pl.Series(col_list).alias("9mer_seq"))
     return dataset
@@ -31,8 +33,8 @@ def mean_func_9mer(row, path):
     af3 = AF3Output(Path(path) / row["job_name"])
     pLDDT = af3.get_mda_universe().atoms.select_atoms("name CA").tempfactors
     pLDDT_9mer = []
-    for i in range(0, 23):
-        pLDDT_9mer.append(pLDDT[i : i + 8].mean())
+    for i in range(0, 22):
+        pLDDT_9mer.append(pLDDT[i : i + 9].mean())
 
     row["9mer_Mean_pLDDT"] = pLDDT_9mer
     return row
@@ -49,8 +51,8 @@ def min_func_9mer(row, path):
     af3 = AF3Output(Path(path) / row["job_name"])
     pLDDT = af3.get_mda_universe().atoms.select_atoms("name CA").tempfactors
     pLDDT_9mer = []
-    for i in range(0, 23):
-        pLDDT_9mer.append(pLDDT[i : i + 8].min())
+    for i in range(0, 22):
+        pLDDT_9mer.append(pLDDT[i : i + 9].min())
 
     row["9mer_min_pLDDT"] = pLDDT_9mer
     return row
@@ -65,8 +67,8 @@ def std_func_9mer(row, path):
     af3 = AF3Output(Path(path) / row["job_name"])
     pLDDT = af3.get_mda_universe().atoms.select_atoms("name CA").tempfactors
     pLDDT_9mer = []
-    for i in range(0, 23):
-        pLDDT_9mer.append(pLDDT[i : i + 8].std())
+    for i in range(0, 22):
+        pLDDT_9mer.append(pLDDT[i : i + 9].std())
 
     row["9mer_std_pLDDT"] = pLDDT_9mer
     return row
@@ -125,89 +127,30 @@ def pl_pae_std(dataset, path):
     return std_dataset
 
 
-"""def bar_graph(dataset, path):
-    required_cols = ["job_name", "Mean_pLDDT", "Min_pLDDT", "Std_pLDDT"]
-    # Check if all required columns for plotting are present in the DataFrame
-    if not all(col in dataset.columns for col in required_cols):
-        missing_cols = [col for col in required_cols if col not in dataset.columns]
-        print(
-            f"Error: DataFrame is missing required columns for plotting: {missing_cols}."
-        )
-        print(
-            "Please ensure your `pl_mean`, `pl_min`, and `pl_std` functions have been"
-        )
-        print("applied to the dataset to add these columns before calling 'bar_graph'.")
-        return
-
-    job_names = dataset["job_name"].to_list()
-    mean_values = dataset["Mean_pLDDT"].to_list()
-    min_values = dataset["Min_pLDDT"].to_list()
-    std_values = dataset["Std_pLDDT"].to_list()
-
-    n_jobs = len(job_names)
-    if n_jobs == 0:
-        print(
-            "No job data to plot. The DataFrame 'dataset' is empty or contains no job names."
-        )
-        return
-
-    bar_width = 0.2
-    # The x locations for the groups of bars (one group for each job_name)
-    index = np.arange(n_jobs)
-
-    fig, ax = plt.subplots(figsize=(max(10, n_jobs * bar_width * 5), 7))
-
-    bar1 = ax.bar(
-        index - bar_width, mean_values, bar_width, label="Mean pLDDT", color="skyblue"
-    )
-    bar2 = ax.bar(
-        index, min_values, bar_width, label="Minimum pLDDT", color="lightcoral"
-    )
-    bar3 = ax.bar(
-        index + bar_width,
-        std_values,
-        bar_width,
-        label="Standard Deviation pLDDT",
-        color="lightgreen",
-    )
-
-    # Helper function to add value labels on top of each bar
-    def autolabel(bars):
-        for bar in bars:
-            height = bar.get_height()
-            ax.annotate(
-                f"{height:.2f}",
-                xy=(bar.get_x() + bar.get_width() / 2, height),
-                xytext=(0, 3),
-                textcoords="offset points",
-                ha="center",
-                va="bottom",
-                fontsize=9,
-            )
-
-    # Apply autolabel to each set of bars
-    autolabel(bar1)
-    autolabel(bar2)
-    autolabel(bar3)
-
-    # Set titles and labels for the plot
-    ax.set_xlabel("Job Name", fontsize=12)
-    ax.set_ylabel("pLDDT Value", fontsize=12)
-    ax.set_title("pLDDT Statistics per Job", fontsize=16)
-    ax.set_xticks(index)
-
-    ax.set_xticklabels(job_names, rotation=45, ha="right", fontsize=10)
-    ax.legend()
-    ax.grid(axis="y", linestyle="--", alpha=0.7)
-
-    plt.tight_layout()
-    plt.show()"""
-
-
 def statistics(dataset, path):
     mean_dataset = pl_mean(dataset, path)
     min_mean_dataset = pl_min(mean_dataset, path)
     return pl_std(min_mean_dataset, path)
+
+
+# normalizing the pLDDT values
+def normalized_pLDDT_30mer(dataset, colname: str):
+    max_pLDDT = dataset.select(pl.col(colname)).max().item()
+    print("max:" + str(max_pLDDT))
+    min_pLDDT = dataset.select(pl.col(colname)).min().item()
+    print("min:" + str(min_pLDDT))
+    mean_pLDDT = dataset.select(pl.col(colname)).to_series()
+    normalized_series = (
+        dataset.with_columns(
+            (1 - ((pl.col(colname) - min_pLDDT) / (max_pLDDT - min_pLDDT))).alias(
+                "normalized_pLDDT"
+            )
+        )
+        .select(pl.col("normalized_pLDDT"))
+        .to_series()
+        .to_numpy()
+    )
+    return normalized_series
 
 
 # Is the functions that appends the mean column to the dataset
@@ -264,3 +207,75 @@ if __name__ == "__main__":
         peptide_test_dat,
         "/scratch/sromero/af3-linear-epitopes/data/test/peptide/inference",
     )
+
+
+def plot_auc_roc_curve(
+    y_true: np.ndarray,
+    y_scores: np.ndarray,
+    title: str = "Receiver Operating Characteristic (ROC) Curve",
+) -> plt.Figure:
+    """
+    Generates and plots the Receiver Operating Characteristic (ROC) curve and calculates
+    the Area Under the Curve (AUC) for binary classification predictions.
+
+    Args:
+        y_true (np.ndarray): True binary labels (0 or 1).
+        y_scores (np.ndarray): Target scores, usually the probability estimates
+                                of the positive class.
+        title (str, optional): Title for the plot. Defaults to
+                               "Receiver Operating Characteristic (ROC) Curve".
+
+    Returns:
+        matplotlib.figure.Figure: The generated matplotlib figure object containing the ROC curve.
+    """
+
+    # Ensure inputs are numpy arrays
+    y_true = np.asarray(y_true)
+    y_scores = np.asarray(y_scores)
+
+    # Calculate False Positive Rate (FPR), True Positive Rate (TPR), and thresholds
+    # fpr: array of shape (n_thresholds,)
+    #     Increasing false positive rates such that element i is the false positive rate
+    #     of predictions with score >= thresholds[i].
+    # tpr: array of shape (n_thresholds,)
+    #     Increasing true positive rates such that element i is the true positive rate
+    #     of predictions with score >= thresholds[i].
+    # thresholds: array of shape (n_thresholds,)
+    #     Decreasing thresholds on the decision function used to compute fpr and tpr.
+    #     thresholds[0] represents no instances being predicted as positive.
+    fpr, tpr, thresholds = roc_curve(y_true, y_scores)
+
+    # The AUC provides an aggregate measure of performance across all possible
+    # classification thresholds. It ranges from 0 to 1, where 1 is perfect
+    # classification and 0.5 is random.
+    roc_auc = auc(fpr, tpr)
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    ax.plot(
+        fpr, tpr, color="darkorange", lw=2, label=f"ROC curve (AUC = {roc_auc:.2f})"
+    )
+
+    # A random classifier would have an AUC of 0.5, indicated by this diagonal line.
+    ax.plot(
+        [0, 1],
+        [0, 1],
+        color="navy",
+        lw=2,
+        linestyle="--",
+        label="Random Classifier (AUC = 0.5)",
+    )
+
+    ax.set_title(title, fontsize=16)
+    ax.set_xlabel("False Positive Rate (FPR)", fontsize=12)
+    ax.set_ylabel("True Positive Rate (TPR)", fontsize=12)
+
+    ax.set_xlim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.05])
+
+    ax.legend(loc="lower right")
+
+    ax.grid(True, linestyle="--", alpha=0.7)
+
+    plt.tight_layout()
+    return fig
