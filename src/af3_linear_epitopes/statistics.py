@@ -1,6 +1,7 @@
 import polars as pl
 import matplotlib.pyplot as plt
 import numpy as np
+from MDAnalysis.analysis.dssp import DSSP
 from mdaf3.FeatureExtraction import *
 from mdaf3.AF3OutputParser import AF3Output
 from pathlib import Path
@@ -10,6 +11,65 @@ from sklearn.metrics import roc_curve, auc
 CHUNKSIZE = 15
 
 
+# finding the avg atomic weight for the 30-mers
+def avg_atomic_weight_30mer(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    u = af3.get_mda_universe()
+    weight = u.atoms.total_mass()
+    avg_weight = weight / 30
+    row["avg_atomic_weight"] = avg_weight
+    return row
+
+
+def pl_avg_weight(dataset, path):
+    avg_weight = split_apply_combine(
+        dataset, avg_atomic_weight_30mer, path, chunksize=CHUNKSIZE
+    )
+    return avg_weight
+
+
+def raw_helix_indices_bool(sel):
+    # find helices
+    # https://docs.mdanalysis.org/2.8.0/documentation_pages/analysis/dssp.html
+    helix_resindices_boolmask = DSSP(sel).run().results.dssp_ndarray[0, :, 1]
+    return helix_resindices_boolmask.tolist()
+
+
+def raw_beta_indices_bool(sel):
+    # find helices
+    # https://docs.mdanalysis.org/2.8.0/documentation_pages/analysis/dssp.html
+    beta_resindices_boolmask = DSSP(sel).run().results.dssp_ndarray[0, :, 2]
+    return beta_resindices_boolmask.tolist()
+
+
+# finding the beta pleats of the 30-mer
+def beta(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    u = af3.get_mda_universe()
+    row["beta"] = raw_beta_indices_bool(u)
+    return row
+
+
+def pl_beta(dataset, path):
+    beta_dataset = split_apply_combine(dataset, beta, path, chunksize=CHUNKSIZE)
+    return beta_dataset
+
+
+# finding the helix's of the 30mers
+def helix(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    u = af3.get_mda_universe()
+
+    row["helix"] = raw_helix_indices_bool(u)
+    return row
+
+
+def pl_helix(dataset, path):
+    helix_dataset = split_apply_combine(dataset, helix, path, chunksize=CHUNKSIZE)
+    return helix_dataset
+
+
+# creating col of statistics(mean,min,std) of every 9mer peptide
 def statistics_9mer(dataset, path):
     mean_dataset_9mer = pl_mean_9mer(dataset, path)
     min_mean_dataset_9mer = pl_min_9mer(mean_dataset_9mer, path)

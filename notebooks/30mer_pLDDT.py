@@ -17,6 +17,7 @@ all_statistics = pl.read_parquet(
     "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/staged/01_hv.features.parquet"
 )
 
+
 true_mean = (
     all_statistics.filter(pl.col("epitope"))
     .select(pl.col("Mean_pLDDT"))
@@ -34,6 +35,7 @@ false_mean = (
 )
 avg_false_mean = sum(false_mean) / len(false_mean)
 
+
 true_std = (
     all_statistics.filter(pl.col("epitope"))
     .select(pl.col("Std_pLDDT"))
@@ -49,6 +51,7 @@ false_std = (
     .to_list()
 )
 avg_false_std = sum(false_std) / len(false_std)
+
 
 true_min = (
     all_statistics.filter(pl.col("epitope"))
@@ -179,6 +182,7 @@ pLDDT_statistics_30mer.savefig(
     "../results/figures/pLDDT_statistics_30mer_epitope_vs_non-epitopes.png"
 )
 
+
 true_mean_min_9mer = (
     all_statistics.filter(pl.col("epitope"))
     .select(pl.col("9mer_Mean_pLDDT").list.min())
@@ -251,10 +255,8 @@ print(
 
 def plot_epitope_non_epitope_stats_9mer(
     avg_true_mean_min_9mer: float,
-    avg_true_min_min_9mer: float,
     avg_true_std_min_9mer: float,
     avg_false_mean_min_9mer: float,
-    avg_false_min_min_9mer: float,
     avg_false_std_min_9mer: float,
 ):
     """
@@ -272,7 +274,6 @@ def plot_epitope_non_epitope_stats_9mer(
     categories = ["Epitope", "Non-Epitope"]
     # Data for each statistic type
     mean_values = [avg_true_mean_min_9mer, avg_false_mean_min_9mer]
-    min_values = [avg_true_min_min_9mer, avg_false_min_min_9mer]
     std_values = [avg_true_std_min_9mer, avg_false_std_min_9mer]
 
     # Set up bar positions
@@ -289,9 +290,6 @@ def plot_epitope_non_epitope_stats_9mer(
         label="Mean pLDDT",
         color="skyblue",
         edgecolor="grey",
-    )
-    rects2 = ax.bar(
-        x, min_values, width, label="Min pLDDT", color="lightcoral", edgecolor="grey"
     )
     rects3 = ax.bar(
         x + width,
@@ -325,7 +323,6 @@ def plot_epitope_non_epitope_stats_9mer(
             )
 
     autolabel_single_bar(rects1)
-    autolabel_single_bar(rects2)
     autolabel_single_bar(rects3)
 
     plt.tight_layout()
@@ -334,30 +331,28 @@ def plot_epitope_non_epitope_stats_9mer(
 
 pLDDT_avg_9mer = plot_epitope_non_epitope_stats_9mer(
     avg_true_mean_min_9mer,
-    avg_true_min_min_9mer,
     avg_true_std_min_9mer,
     avg_false_mean_min_9mer,
-    avg_false_min_min_9mer,
     avg_false_std_min_9mer,
 )
 pLDDT_avg_9mer.savefig(
     "../results/figures/pLDDT_statistics_9mer_epitope_vs_non-epitopes.png"
 )
 
+
 y_hat = st.normalized_pLDDT_30mer(all_statistics, "Mean_pLDDT")
 print(y_hat)
+
 
 y = all_statistics.select("epitope").to_series()
 print(y)
 
-mean_of_30mer = st.plot_auc_roc_curve(y, y_hat, "Mean of 30-mear ROC")
-
+mean_of_30mer = st.plot_auc_roc_curve(y, y_hat, "Normalized Mean of pLDDT 30-mear ROC")
 mean_of_30mer.savefig("../results/figures/pLDDT_ROC_mean_30mers.png")
 
 all_statistics = all_statistics.with_columns(
     pl.col("9mer_Mean_pLDDT").list.min().alias("Min_of_means_9mer")
 )
-
 
 all_statistics = all_statistics.with_columns(
     pl.col("9mer_Mean_pLDDT").list.max().alias("Max_of_means_9mer")
@@ -365,9 +360,53 @@ all_statistics = all_statistics.with_columns(
 
 
 y_hat_min = st.normalized_pLDDT_30mer(all_statistics, "Min_of_means_9mer")
-min_roc_9mer = st.plot_auc_roc_curve(y, y_hat_min, "Min 9-mer ROC")
+min_roc_9mer = st.plot_auc_roc_curve(y, y_hat_min, "Normalized Min of pLDDT 9-mer ROC")
 min_roc_9mer.savefig("../results/figures/pLDDT_ROC_min_9mers.png")
 
 y_hat_max = st.normalized_pLDDT_30mer(all_statistics, "Max_of_means_9mer")
-max_roc_9mer = st.plot_auc_roc_curve(y, y_hat_max, "Max 9-mer ROC")
+max_roc_9mer = st.plot_auc_roc_curve(y, y_hat_max, "Normalized Max of pLDDT 9-mer ROC")
 max_roc_9mer.savefig("../results/figures/pLDDT_ROC_max_9mers.png")
+
+
+all_statistics = st.pl_avg_weight(
+    all_statistics, "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference"
+)
+
+
+y_hat_weight = st.normalized_pLDDT_30mer(all_statistics, "avg_atomic_weight")
+st.plot_auc_roc_curve(y, y_hat_weight, "Normalized atomic weight 30-mer ROC")
+
+all_statistics = st.pl_helix(
+    all_statistics, "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference"
+)
+
+all_statistics = all_statistics.with_columns(
+    (
+        (
+            pl.col("helix").list.sum().cast(pl.Float64)
+            / pl.col("helix").list.len().cast(pl.Float64).fill_null(0)
+        )
+        * 100
+    ).alias("true_helix_percentage")
+)
+
+all_statistics = st.pl_beta(
+    all_statistics, "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference"
+)
+
+all_statistics = all_statistics.with_columns(
+    (
+        (
+            pl.col("beta").list.sum().cast(pl.Float64)
+            / pl.col("beta").list.len().cast(pl.Float64).fill_null(0)
+        )
+        * 100
+    ).alias("true_beta_percentage")
+)
+
+
+y_hat_helix = st.normalized_pLDDT_30mer(all_statistics, "true_helix_percentage")
+st.plot_auc_roc_curve(y, y_hat_helix, "Normalized helix percentage pLDDT 9mer ROC")
+
+y_hat_beta = st.normalized_pLDDT_30mer(all_statistics, "true_beta_percentage")
+st.plot_auc_roc_curve(y, y_hat_beta, "Normalized beta pleats percentage pLDDT 9mer ROC")
