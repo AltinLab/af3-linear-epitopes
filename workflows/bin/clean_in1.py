@@ -64,7 +64,7 @@ if __name__ == "__main__":
     root_data_path = Path(args.raw_data_path)
 
     in1_metadata = pl.read_csv(
-        root_data_path / "IN1_meta_04-09-25.tsv",
+        root_data_path / "IN1_meta_04-09-25.tsv.gz",
         separator="\t",
         # remove PV2 (HV2) from IN1 dataset
     ).filter(pl.col("Source") != "PV2")
@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
     # high in glutamate and lysine
     removed_ek_pep = pl.read_csv(
-        root_data_path / "removed_EK_Peptides.tsv",
+        root_data_path / "removed_EK_Peptides.tsv.gz",
         separator="\t",
         has_header=False,
         new_columns=["CodeName"],
@@ -80,14 +80,14 @@ if __name__ == "__main__":
 
     deconv = pl.read_csv(
         root_data_path
-        / "IN1_deconv_240_deconvParse_nonspecificPepsRM_maxPerSample.tsv",
+        / "IN1_deconv_240_deconvParse_nonspecificPepsRM_maxPerSample.tsv.gz",
         separator="\t",
     ).select(~cs.starts_with("S-"))
 
     deconv = convert_null_species_to_int(deconv)
 
     z_score = pl.read_csv(
-        root_data_path / "IM0154_IM0162_IN1_trunc86_Z-HDI95_max.tsv",
+        root_data_path / "IM0154_IM0162_IN1_trunc86_Z-HDI95_max.tsv.gz",
         separator="\t",
     )
 
