@@ -110,7 +110,7 @@ process FILT_FORMAT_MSA {
 process RUN_MSA {
     queue 'compute'
     cpus '8'
-    memory '64GB'
+    memory { "${ Math.min(512, 64 * Math.pow(2, task.attempt - 1)) }GB" }
     executor "slurm"
     clusterOptions '--time=8:00:00'
     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
@@ -126,6 +126,9 @@ process RUN_MSA {
     script:
     """
     module load singularity
+
+    # some MSAs are so large they overrun the tmpdir on the compute node (which is approx 175 GB)
+    export SINGULARITYENV_TMPDIR=${params.msa_tmpdir}
 
     singularity exec \\
         -B /home,/scratch,/tgen_labs,/ref_genomes \\
