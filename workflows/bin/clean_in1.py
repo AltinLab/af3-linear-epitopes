@@ -5,7 +5,7 @@ Files:
     towards a species for the donors it reacted to based on the number of 7-mers the peptide shared with that species.
     Max per sample means that the highest score for each species was taken for each donor across samples taken longitudinally.
     Deconv score (cell values) can be thought of as a "likelihood that a donor was infected by a particular species"
-
+- IM0154_IM0162_IN1_trunc86_Z-HDI95_max.tsv.gz: Z scores from pepseq for each peptide.
 This script will filter original IN1 dataset into IN1 (non-epitopes) and IN2 (epitopes) using the following rules:
 
 - Epitope peptides and non-epitope peptides must have an EK thresh <= PROP_EK_THRESH and not be listed in 'removed_EK_Peptides.tsv'
@@ -86,9 +86,8 @@ if __name__ == "__main__":
 
     deconv = convert_null_species_to_int(deconv)
 
-    z_score = pl.read_csv(
-        root_data_path / "IM0154_IM0162_IN1_trunc86_Z-HDI95_max.tsv.gz",
-        separator="\t",
+    z_score = pl.read_parquet(
+        root_data_path / "IM0154_IM0162_IN1_trunc86_Z-HDI95_max.parquet",
     )
 
     pre_sub_peptides = fasta_to_polars(
