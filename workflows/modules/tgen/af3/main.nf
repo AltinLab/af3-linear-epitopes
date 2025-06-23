@@ -127,6 +127,9 @@ process RUN_MSA {
     """
     module load singularity
 
+    # some MSAs are so large they overrun the tmpdir on the compute node (which is approx 175 GB)
+    export SINGULARITYENV_TMPDIR=${params.msa_tmpdir}
+
     singularity exec \\
         -B /home,/scratch,/tgen_labs,/ref_genomes \\
         --cleanenv \\

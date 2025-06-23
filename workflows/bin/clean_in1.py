@@ -86,8 +86,8 @@ if __name__ == "__main__":
 
     deconv = convert_null_species_to_int(deconv)
 
-    z_score = pl.read_parquet(
-        root_data_path / "IM0154_IM0162_IN1_trunc86_Z-HDI95_max.parquet",
+    z_score = pl.read_csv(
+        root_data_path / "IM0154_IM0162_IN1_trunc86_Z-HDI95_max.tsv.gz", separator="\t"
     )
 
     pre_sub_peptides = fasta_to_polars(
