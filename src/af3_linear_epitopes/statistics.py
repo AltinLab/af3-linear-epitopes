@@ -202,7 +202,7 @@ def normalized_pLDDT_30mer(dataset, colname: str):
     mean_pLDDT = dataset.select(pl.col(colname)).to_series()
     normalized_series = (
         dataset.with_columns(
-            (1 - ((pl.col(colname) - min_pLDDT) / (max_pLDDT - min_pLDDT))).alias(
+            ((1 - (pl.col(colname) - min_pLDDT) / (max_pLDDT - min_pLDDT))).alias(
                 "normalized_pLDDT"
             )
         )
