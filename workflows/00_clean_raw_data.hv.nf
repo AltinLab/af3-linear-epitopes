@@ -3,11 +3,7 @@ params.dset_name = "test"
 
 
 process CLEAN_HV1 {
-  queue 'compute'
-  executor "slurm"
-  cpus 1
-  memory '3 GB'
-  clusterOptions '--nodes=1 --ntasks=1 --time=01:00:00'
+  label "process_local"
   conda "envs/env.yaml"
 
   input:
@@ -25,11 +21,7 @@ process CLEAN_HV1 {
 }
 
 process CLEAN_HV2 {
-  queue 'compute'
-  executor "slurm"
-  cpus 1
-  memory '3 GB'
-  clusterOptions '--nodes=1 --ntasks=1 --time=01:00:00'
+  label "process_local"
   conda "envs/env.yaml"
 
   input:
@@ -48,12 +40,7 @@ process CLEAN_HV2 {
 }
 
 process COMBINE_HV {
-  queue 'compute'
-  executor "slurm"
-  cpus 1
-  memory '3 GB'
-  clusterOptions '--nodes=1 --ntasks=1 --time=01:00:00'
-  publishDir "$params.data_dir/$params.dset_name/peptide/staged", mode: 'copy'
+  label "process_local"
   conda "envs/env.yaml"
 
   input:
@@ -82,13 +69,8 @@ process COMBINE_HV {
   """
 }
 
-process CLEAN_FOCAL_PROTEIN {
-  queue 'compute'
-  executor "slurm"
-  cpus 1
-  memory '3 GB'
-  clusterOptions '--nodes=1 --ntasks=1 --time=01:00:00'
-  publishDir "$params.data_dir/$params.dset_name/focal_protein/staged", mode: 'copy'
+process CLEAN_HV_FOCAL_PROTEIN {
+  label "process_local"
   conda "envs/env.yaml"
 
   input:
@@ -99,10 +81,46 @@ process CLEAN_FOCAL_PROTEIN {
 
   script:
   """
-  clean_focal_protein.py \
+  clean_hv1_focal_protein.py \
     -f ${fp} \
     -o 00_focal_protein.cleaned.parquet
   """
+}
+
+process FILT_AND_ANNOT_HV1 {
+    label "process_local"
+    conda "envs/env.yaml"
+
+    publishDir(
+        path: {"$params.data_dir/$params.dset_name/peptide/staged"},
+        pattern: "${peptide.getSimpleName()}*",
+        mode: 'copy'
+    )
+    publishDir(
+        path: {"$params.data_dir/$params.dset_name/focal_protein/staged"},
+        pattern: "${focal_protein.getSimpleName()}*",
+        mode: 'copy'
+    )
+
+    input:
+    path peptide
+    path focal_protein
+
+    output:
+    path("*.filt.parquet")
+    path("*.filt.parquet")
+
+    script:
+    def peptide_out = peptide.getSimpleName() + ".filt.parquet"
+    def focal_protein_out = focal_protein.getSimpleName() + ".filt.parquet"
+    """
+    filt_annot_hv1.py \
+        -p ${peptide} \
+        -op ${peptide_out} \
+        -f ${focal_protein} \
+        -of ${focal_protein_out}
+    """
+
 }
 
 workflow {
@@ -111,6 +129,7 @@ workflow {
   hv2 = CLEAN_HV2(Channel.fromPath("data/hv/raw/HV2_annot.csv"))
   COMBINE_HV(hv1, hv2)
   
-  CLEAN_FOCAL_PROTEIN(Channel.fromPath("data/hv/raw/fulldesign_2019-02-27_wGBKsw.fasta"))
+  CLEAN_HV_FOCAL_PROTEIN(Channel.fromPath("data/hv/raw/fulldesign_2019-02-27_wGBKsw.fasta"))
 
+  FILT_AND_ANNOT_HV1(COMBINE_HV.out, CLEAN_HV_FOCAL_PROTEIN.out)
 }

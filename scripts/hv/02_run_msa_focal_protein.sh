@@ -16,5 +16,4 @@ export NXF_CACHE_DIR=tmp/nextflow/hv/focal_protein/msa/
 
 nextflow run \
     ./workflows/02_msa_focal_protein.nf \
-        --dset_name hv \
-        --force_update_msa
+        --dset_name hv

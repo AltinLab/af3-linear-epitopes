@@ -6,9 +6,10 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from Bio import SeqIO
 import polars as pl
+import numpy as np
 
 
-def fasta_to_polars(fasta_path: str) -> pl.DataFrame:
+def fasta_to_polars(fasta_path: str, desc_as_name: bool = False) -> pl.DataFrame:
     """
     Read a FASTA file and convert it into a Polars DataFrame
     with columns ["name", "sequence"].
@@ -26,7 +27,10 @@ def fasta_to_polars(fasta_path: str) -> pl.DataFrame:
     """
     records = list(SeqIO.parse(fasta_path, "fasta"))
 
-    names = [rec.id for rec in records]
+    if desc_as_name:
+        names = [rec.description for rec in records]
+    else:
+        names = [rec.id for rec in records]
     seqs = [str(rec.seq) for rec in records]
 
     df = pl.DataFrame({"name": names, "seq": seqs})
@@ -42,9 +46,7 @@ def generate_job_name(df, cols, name="job_name"):
                 ],
                 ignore_nulls=True,
             )
-            .map_elements(
-                lambda x: hash_sequence(x, "md5"), return_dtype=pl.String
-            )
+            .map_elements(lambda x: hash_sequence(x, "md5"), return_dtype=pl.String)
             .alias(name),
         )
     )
@@ -109,9 +111,7 @@ def extract_sequence_from_ac(row):
             "query": ac,
             "fields": ["sequence"],
         }
-        r = session.get(
-            f"https://rest.uniprot.org/uniprotkb/search", params=params
-        )
+        r = session.get(f"https://rest.uniprot.org/uniprotkb/search", params=params)
         r.raise_for_status()
         tmp_json = r.json()["results"]
         # make sure that it is a unique cross reference identifier
@@ -167,3 +167,21 @@ def extract_sequence_from_ac(row):
     row["liveAC"] = true_ac
 
     return row
+
+
+def set_30mer_indices_to_true(row_struct):
+    """
+    Sets specified indices in a boolean mask to True.
+
+    Args:
+        row_struct: A dictionary-like object representing a row, with keys
+                    "boolmask" and "indices".
+
+    Returns:
+        A Polars Series containing the modified boolean mask.
+    """
+    boolmask = np.array(row_struct["boolmask"])
+    indices = row_struct["indices"]
+    for idx in indices:
+        boolmask[idx : idx + 30] = True
+    return boolmask.tolist()

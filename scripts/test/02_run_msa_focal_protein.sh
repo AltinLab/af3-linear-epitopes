@@ -12,10 +12,7 @@
 
 # env vars
 export NXF_LOG_FILE=tmp/nextflow/test/focal_protein/msa/nextflow.log
-export NXF_CACHE_DIR=tmp/nextflow/test/focal_protein/msa/
 
 nextflow run \
     ./workflows/02_msa_focal_protein.nf \
-        --dset_name test \
-        -resume
-
+        --dset_name test 
