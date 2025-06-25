@@ -324,4 +324,36 @@ y_true = aggrigate_atomic_weights.select(pl.col("epitope"))
 norm_max_weight_9mer_fp = st.plot_auc_roc_curve(
     y_true, y_hat_mass_fp, "Normalized max of atomic mass for 9-mers ROC"
 )
+# Shows the AUC scores for each focal protein based on the mean, max, and min of the atomic weights of the 9-mers
+aggrigate_atomic_weights_mean  = all_statistics_fp.group_by("fp_job_names").agg(
+    (pl.col("9mer_weight").list.mean()).alias("score"), pl.col("epitope").alias("epitope")
+)
+aggrigate_atomic_weights_min  = all_statistics_fp.group_by("fp_job_names").agg(
+    (pl.col("9mer_weight").list.min()).alias("score"), pl.col("epitope").alias("epitope")
+)
+aggrigate_atomic_weights_max  = all_statistics_fp.group_by("fp_job_names").agg(
+    (pl.col("9mer_weight").list.max()).alias("score"), pl.col("epitope").alias("epitope")
+)
+
+aggrigate_atomic_weights_mean= aggrigate_atomic_weights_mean.with_columns(
+    pl.struct(pl.col("score").alias("y_hat"), pl.col("epitope").alias("y_true"))
+    .map_elements(lambda x: sklearn.metrics.roc_auc_score(x["y_true"], x["y_hat"]))
+    .alias("AUC")
+)
+aggrigate_atomic_weights_min= aggrigate_atomic_weights_min.with_columns(
+    pl.struct(pl.col("score").alias("y_hat"), pl.col("epitope").alias("y_true"))
+    .map_elements(lambda x: sklearn.metrics.roc_auc_score(x["y_true"], x["y_hat"]))
+    .alias("AUC")
+)
+aggrigate_atomic_weights_max= aggrigate_atomic_weights_max.with_columns(
+    pl.struct(pl.col("score").alias("y_hat"), pl.col("epitope").alias("y_true"))
+    .map_elements(lambda x: sklearn.metrics.roc_auc_score(x["y_true"], x["y_hat"]))
+    .alias("AUC")
+)
+mean_auc_fp = aggrigate_atomic_weights_mean.select("AUC").mean()
+mean_auc_min= aggrigate_atomic_weights_min.select("AUC").mean()
+mean_auc_max= aggrigate_atomic_weights_max.select("AUC").mean()
+print(mean_auc_fp)
+print(mean_auc_min)
+print(mean_auc_max)
 
