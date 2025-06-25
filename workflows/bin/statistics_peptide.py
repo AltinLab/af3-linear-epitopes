@@ -12,7 +12,7 @@ from af3_linear_epitopes import statistics_focal as stf
 
 # import dataframes from "staged" directory
 fp_test_dat = pl.read_parquet(
-    "data/hv/focal_protein/staged/00_focal_protein.filt.parquet"
+    "/scratch/sromero/af3-linear-epitopes/data/hv/focal_protein/staged/00_focal_protein.filt.parquet"
 )
 peptide_test_dat = pl.read_parquet("data/hv/peptide/staged/00_hv.filt.parquet")
 
@@ -74,12 +74,25 @@ fp_test_dat = stf.pl_fp_extract(
 all_statistics_fp = peptide_test_dat.explode(["fp_job_names", "fp_seq_idxs"]).join(
     fp_test_dat, left_on="fp_job_names", right_on="job_name"
 )
+
+
 all_statistics_fp = all_statistics_fp.explode(["fp_seq_idxs"])
 all_statistics_fp = all_statistics_fp.with_columns(
     pl.col("pLDDT")
     .list.slice(pl.col("fp_seq_idxs"), 30)
     .list.mean()
     .alias("mean_pLDDT_slice")
+)
+
+all_statistics_fp = stf.fp_pLDDT_score_9mer(
+    all_statistics_fp,
+    "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference",
+)
+all_statistics_fp = st.pl_9mer_weight(
+    all_statistics_fp, "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference"
+)
+all_statistics = st.pl_9mer_weight(
+    all_statistics, "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference"
 )
 
 all_statistics.write_parquet("data/hv/peptide/staged/01_hv.features.parquet")

@@ -6,6 +6,7 @@ from mdaf3.FeatureExtraction import *
 from mdaf3.AF3OutputParser import AF3Output
 from pathlib import Path
 from sklearn.metrics import roc_curve, auc
+from mdakit_sasa.analysis.sasaanalysis import SASAAnalysis
 
 # adds the basic statistic data(ex: mean, min, and standard deviation) to the dataset
 CHUNKSIZE = 15
@@ -16,9 +17,27 @@ def avg_atomic_weight_30mer(row, path):
     af3 = AF3Output(Path(path) / row["job_name"])
     u = af3.get_mda_universe()
     weight = u.atoms.total_mass()
-    avg_weight = weight / 30
-    row["avg_atomic_weight"] = avg_weight
+    avg_weight = weight
+    row["atomic_weight"] = avg_weight
     return row
+
+
+def avg_atomic_weight_9mer(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    u = af3.get_mda_universe()
+    index = 0
+    mass = []
+    for j in range(index, index + 22):
+        mass.append(u.residues[j : j + 9].atoms.total_mass())
+    row["9mer_weight"] = mass
+    return row
+
+
+def pl_9mer_weight(dataset, path):
+    weight_9mer = split_apply_combine(
+        dataset, avg_atomic_weight_9mer, path, chunksize=CHUNKSIZE
+    )
+    return weight_9mer
 
 
 def pl_avg_weight(dataset, path):
@@ -199,7 +218,6 @@ def normalized_pLDDT_30mer(dataset, colname: str):
     print("max:" + str(max_pLDDT))
     min_pLDDT = dataset.select(pl.col(colname)).min().item()
     print("min:" + str(min_pLDDT))
-    mean_pLDDT = dataset.select(pl.col(colname)).to_series()
     normalized_series = (
         dataset.with_columns(
             ((1 - (pl.col(colname) - min_pLDDT) / (max_pLDDT - min_pLDDT))).alias(
@@ -267,6 +285,164 @@ if __name__ == "__main__":
         peptide_test_dat,
         "/scratch/sromero/af3-linear-epitopes/data/test/peptide/inference",
     )
+
+
+# the code below are functions to create the bar graphs and AUC curves
+def plot_epitope_non_epitope_stats_9mer(
+    avg_true_mean_min_9mer: float,
+    avg_true_std_min_9mer: float,
+    avg_false_mean_min_9mer: float,
+    avg_false_std_min_9mer: float,
+):
+    """
+    Creates a grouped bar graph comparing mean, minimum, and standard deviation
+    of pLDDT values for Epitopes and Non-Epitopes.
+
+    Args:
+        avg_true_mean_min_9mer (float): Average mean pLDDT for epitopes.
+        avg_true_std_min_9mer (float): Average standard deviation pLDDT for epitopes.
+        avg_false_mean_min_9mer (float): Average mean pLDDT for non-epitopes.
+        avg_false_std_min_9mer (float): Average standard deviation pLDDT for non-epitopes.
+    """
+    categories = ["Epitope", "Non-Epitope"]
+    # Data for each statistic type
+    mean_values = [avg_true_mean_min_9mer, avg_false_mean_min_9mer]
+    std_values = [avg_true_std_min_9mer, avg_false_std_min_9mer]
+
+    # Set up bar positions
+    x = np.arange(len(categories))  # the label locations
+    width = 0.25  # the width of the bars
+
+    fig, ax = plt.subplots(figsize=(10, 7))
+
+    # Create bars for Mean, Min, and Std Dev for both categories
+    rects1 = ax.bar(
+        x - width,
+        mean_values,
+        width,
+        label="Mean pLDDT",
+        color="skyblue",
+        edgecolor="grey",
+    )
+    rects3 = ax.bar(
+        x + width,
+        std_values,
+        width,
+        label="Std Dev pLDDT",
+        color="lightgreen",
+        edgecolor="grey",
+    )
+
+    # Add labels, title, and custom x-axis tick labels
+    ax.set_ylabel("pLDDT Value", fontsize=12)
+    ax.set_title("pLDDT Statistics 9-mer: Epitopes vs Non-Epitopes", fontsize=16)
+    ax.set_xticks(x)
+    ax.set_xticklabels(categories, fontsize=12)
+    ax.legend()
+    ax.grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Add value labels on top of the bars
+    def autolabel_single_bar(rects):
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate(
+                f"{height:.2f}",
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(0, 3),  # 3 points vertical offset
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
+
+    autolabel_single_bar(rects1)
+    autolabel_single_bar(rects3)
+
+    plt.tight_layout()
+    return fig
+
+
+def plot_epitope_non_epitope_stats_30mer(
+    avg_true_mean: float,
+    avg_true_min: float,
+    avg_true_std: float,
+    avg_false_mean: float,
+    avg_false_min: float,
+    avg_false_std: float,
+):
+    """
+    Creates a grouped bar graph comparing mean, minimum, and standard deviation
+    of pLDDT values for Epitopes and Non-Epitopes.
+
+    Args:
+        avg_true_mean (float): Average mean pLDDT for epitopes.
+        avg_true_min (float): Average minimum pLDDT for epitopes.
+        avg_true_std (float): Average standard deviation pLDDT for epitopes.
+        avg_false_mean (float): Average mean pLDDT for non-epitopes.
+        avg_false_min (float): Average minimum pLDDT for non-epitopes.
+        avg_false_std (float): Average standard deviation pLDDT for non-epitopes.
+    """
+    categories = ["Epitope", "Non-Epitope"]
+    # Data for each statistic type
+    mean_values = [avg_true_mean, avg_false_mean]
+    min_values = [avg_true_min, avg_false_min]
+    std_values = [avg_true_std, avg_false_std]
+
+    # Set up bar positions
+    x = np.arange(len(categories))  # the label locations
+    width = 0.25  # the width of the bars
+
+    fig, ax = plt.subplots(figsize=(10, 7))
+
+    # Create bars for Mean, Min, and Std Dev for both categories
+    rects1 = ax.bar(
+        x - width,
+        mean_values,
+        width,
+        label="Mean pLDDT",
+        color="skyblue",
+        edgecolor="grey",
+    )
+    rects2 = ax.bar(
+        x, min_values, width, label="Min pLDDT", color="lightcoral", edgecolor="grey"
+    )
+    rects3 = ax.bar(
+        x + width,
+        std_values,
+        width,
+        label="Std Dev pLDDT",
+        color="lightgreen",
+        edgecolor="grey",
+    )
+
+    # Add labels, title, and custom x-axis tick labels
+    ax.set_ylabel("pLDDT Value", fontsize=12)
+    ax.set_title("pLDDT Statistics 30-mer: Epitopes vs Non-Epitopes", fontsize=16)
+    ax.set_xticks(x)
+    ax.set_xticklabels(categories, fontsize=12)
+    ax.legend()
+    ax.grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Add value labels on top of the bars
+    def autolabel_single_bar(rects):
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate(
+                f"{height:.2f}",
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(0, 3),  # 3 points vertical offset
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
+
+    autolabel_single_bar(rects1)
+    autolabel_single_bar(rects2)
+    autolabel_single_bar(rects3)
+
+    plt.tight_layout()
+    return fig
 
 
 def plot_auc_roc_curve(
