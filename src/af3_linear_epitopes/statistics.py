@@ -1,3 +1,4 @@
+from .sasa import PatchedSASAAnalysis
 import polars as pl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,10 +7,26 @@ from mdaf3.FeatureExtraction import *
 from mdaf3.AF3OutputParser import AF3Output
 from pathlib import Path
 from sklearn.metrics import roc_curve, auc
-from mdakit_sasa.analysis.sasaanalysis import SASAAnalysis
 
 # adds the basic statistic data(ex: mean, min, and standard deviation) to the dataset
 CHUNKSIZE = 15
+
+
+# finding the SASA for our datasets
+def sasa_fp(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    u = af3.get_mda_universe()
+    analysis = PatchedSASAAnalysis(u)
+    analysis.run()
+    row["RSA"] = analysis.results.relative_residue_area[0].tolist()
+    row["SA"] = analysis.results.residue_area[0].tolist()
+
+    return row
+
+
+def pl_sasa_fp(dataset, path):
+    area = split_apply_combine(dataset, sasa_fp, path, chunksize=CHUNKSIZE)
+    return area
 
 
 # finding the avg atomic weight for the 30-mers
