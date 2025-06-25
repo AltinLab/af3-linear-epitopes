@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import polars as pl
 from af3_linear_epitopes import statistics as st
 import argparse
