@@ -60,7 +60,6 @@ class AntigensCached(bepipred3.Antigens):
         completed_new_data = []
 
         for b in batch_generator:
-
             batch_labels, batch_strs, batch_tokens = batch_converter(b)
             batch_lens = (batch_tokens != alphabet.padding_idx).sum(1)
             acc_names = batch_labels
