@@ -4,7 +4,7 @@ include { SEQ_LIST_TO_FASTA } from './modules/tgen/af3'
 
 workflow {
 
-    peptide_channel = Channel.fromPath("$params.data_dir/$params.dset_name/peptide/staged/*.filt.parquet").splitParquet().map{
+    peptide_channel = Channel.fromPath("$params.data_dir/$params.dset_name/peptide/staged/*.filt*.parquet").splitParquet().map{
         row -> 
             tuple(
                 [
