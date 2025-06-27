@@ -15,8 +15,8 @@ process CLEAN_IEDB_BP3 {
   """
   clean_iedb_bp3.py \
     --raw_data_path ${raw_data} \
-    --discard_path 00_iedb_bp3.discard.parquet \
-    -o 00_iedb_bp3.filt.parquet
+    --discard_path iedb_bp3.discard.parquet \
+    -o iedb_bp3.filt.parquet
   """
 }
 

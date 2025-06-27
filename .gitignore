@@ -124,4 +124,6 @@ poetry.lock
 tmp
 
 # ignore raw dat until I can find a way to compress it to <100 MB
-data/in/raw/IM0154_IM0162_IN1_trunc86_Z-HDI95_max.tsv.gz
+data/*/raw/IM0154_IM0162_IN1_trunc86_Z-HDI95_max.tsv.gz
+# ignore bp3 feat
+data/**/*.bp3*.parquet
