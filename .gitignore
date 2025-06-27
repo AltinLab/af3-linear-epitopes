@@ -119,7 +119,10 @@ poetry.lock
 
 # notebooks
 **/*.ipynb
-
+#parquet
+data/hv/peptide/staged/01_hv.features.parquet
+# env yaml
+envs/env.yaml
 # scratch
 tmp
 
