@@ -52,7 +52,7 @@ def pl_fp_extract(dataset, path):
     return fp_dataset
 
 
-def fp_pLDDT_score_9mer(dataset, path):
+def fp_pLDDT_score_9mer(dataset):
     fp_9mer_mean_pLDDT = dataset.with_columns(
         pl.col("pLDDT")
         .list.slice(pl.col("fp_seq_idxs"), 30)

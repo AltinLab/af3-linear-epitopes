@@ -22,12 +22,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    all_statistics_fp = pl.read_parquet(
-        args.input_parquet
-    )
-    all_statistics_fp = st.pl_sasa_fp(
-        all_statistics_fp,
-        args.inference_path
-    )
+    all_statistics_fp = pl.read_parquet(args.input_parquet)
+    all_statistics_fp = st.pl_sasa_fp(all_statistics_fp, args.inference_path)
 
     all_statistics_fp.write_parquet(args.output_path)

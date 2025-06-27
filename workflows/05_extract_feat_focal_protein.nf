@@ -25,7 +25,7 @@ process EXTRACT_RSA {
 }
 
 workflow {
-    filt_pq = Channel.fromPath("$params.data_dir/$params.dset_name/focal_protein/staged/*.filt.parquet")
+    filt_pq = Channel.fromPath("$params.data_dir/$params.dset_name/focal_protein/staged/*.filt*.parquet")
     inf = Channel.fromPath("$params.data_dir/$params.dset_name/focal_protein/inference")
 
     EXTRACT_RSA(
