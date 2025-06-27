@@ -12,6 +12,76 @@ from sklearn.metrics import roc_curve, auc
 CHUNKSIZE = 15
 
 
+# mean rsa value
+def rsa_mean(dataset):
+    dataset = dataset.with_columns(
+        pl.col("RSA")
+        .list.slice(offset=pl.col("fp_seq_idxs"), length=30)
+        .list.mean()
+        .alias("mean_rsa_slice")
+    )
+    dataset = dataset.with_columns(
+        pl.col("SA")
+        .list.slice(offset=pl.col("fp_seq_idxs"), length=30)
+        .list.mean()
+        .alias("mean_sa_slice")
+    )
+    return dataset
+
+
+# distance from head and tail of amino acid
+def distance(dataset):
+    dataset = dataset.with_columns(
+        (pl.col("fp_seq_idxs") + 14.5).alias("distance_from_head")
+    )
+    dataset = dataset.with_columns(
+        (pl.col("seq").str.len_chars() - (pl.col("fp_seq_idxs") + 14.5)).alias(
+            "distance_from_tail"
+        )
+    )
+    return dataset
+
+
+# finding amino acid sequence patterns
+def amino_acid_freq(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    seq = row["peptide"]
+    amino_acids = {
+        "A": 0,  # Alanine
+        "R": 0,  # Arginine
+        "N": 0,  # Asparagine
+        "D": 0,  # Aspartic Acid
+        "C": 0,  # Cysteine
+        "Q": 0,  # Glutamine
+        "E": 0,  # Glutamic Acid
+        "G": 0,  # Glycine
+        "H": 0,  # Histidine
+        "I": 0,  # Isoleucine
+        "L": 0,  # Leucine
+        "K": 0,  # Lysine
+        "M": 0,  # Methionine
+        "F": 0,  # Phenylalanine
+        "P": 0,  # Proline
+        "S": 0,  # Serine
+        "T": 0,  # Threonine
+        "W": 0,  # Tryptophan
+        "Y": 0,  # Tyrosine
+        "V": 0,  # Valine
+    }
+    for i in range(0, len(seq)):
+        amino_acids[seq[i]] += 1
+    row["most_frequent_amino_acid"] = max_key = max(amino_acids, key=amino_acids.get)
+    row["amino_acid_count"] = amino_acids[max_key]
+    return row
+
+
+def pl_amino_acids(dataset, path):
+    amino_acid = split_apply_combine(
+        dataset, amino_acid_freq, path, chunksize=CHUNKSIZE
+    )
+    return amino_acid
+
+
 # finding the SASA for our datasets
 def sasa_fp(row, path):
     af3 = AF3Output(Path(path) / row["job_name"])
