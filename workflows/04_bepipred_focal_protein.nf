@@ -1,31 +1,6 @@
 params.outdir = "$params.data_dir/$params.dset_name/focal_protein"
 
-include { splitParquet } from 'plugin/nf-parquet'
-include { SEQ_LIST_TO_FASTA } from './modules/tgen/af3'
-
-process PARQUET_TO_FASTA {
-  label "process_local"
-  conda "envs/env.yaml"
-  
-  input:
-      path(parquet)
-  
-  output:
-      path("*.fasta")
-  
-  script:
-  """
-  #!/usr/bin/env python
-
-  import polars as pl
-  
-  df = pl.read_parquet("${parquet}")
-  
-  with open("from_pq.fasta", "w") as f:
-      for row in df.iter_rows(named=True):
-          f.write(f">{row['job_name']}\\n{row['seq']}\\n")
-  """
-}
+include { PARQUET_TO_FASTA } from './modules/local/utils'
 
 process RUN_BEPIPRED {
   queue 'gpu-v100'
@@ -90,12 +65,12 @@ process JOIN_BEPIPRED_INFERENCE {
     ).rename({"Accession": "job_name"})
 
     filt_dset = filt_dset.join(bp, on="job_name")
-    filt_dset.write_parquet("04_focal_protein.feat.parquet")
+    filt_dset.write_parquet("${filt_dset.getSimpleName()}.bp3.parquet")
     """
 }
 
 workflow {
-    filt_pq = Channel.fromPath("$params.data_dir/$params.dset_name/focal_protein/staged/*.filt.parquet")
+    filt_pq = Channel.fromPath("$params.data_dir/$params.dset_name/focal_protein/staged/*.filt*.parquet")
     PARQUET_TO_FASTA(filt_pq)
     RUN_BEPIPRED(PARQUET_TO_FASTA.out)
     JOIN_BEPIPRED_INFERENCE(filt_pq, RUN_BEPIPRED.out)

@@ -1,4 +1,4 @@
-
+include { ANNOTATE_REPRESENTATIVE_PROTEIN_WORKFLOW }from './subworkflows/local/utils'
 
 process CLEAN_IN_CLASS {
   label "process_local"
@@ -16,7 +16,7 @@ process CLEAN_IN_CLASS {
   """
   clean_in_class_peptide.py \
     -r ${raw_data} \
-    -o 00_in_class.cleaned.parquet
+    -o in_class_peptide.cleaned.parquet
   """
 }
 
@@ -35,7 +35,7 @@ process CLEAN_IN_CLASS_FOCAL_PROTEIN {
   """
   clean_in_class_focal_protein.py \
     -f ${fp} \
-    -o 00_in_class_focal_protein.cleaned.parquet
+    -o in_class_focal_protein.cleaned.parquet
   """
 }
 
@@ -49,22 +49,22 @@ process FILT_AND_ANNOT_IN_CLASS {
 
     publishDir(
         path: {"$params.data_dir/$params.dset_name/peptide/staged"},
-        pattern: "${peptide.getSimpleName()}*",
+        pattern: "*peptide*",
         mode: 'copy'
     )
-    publishDir(
-        path: {"$params.data_dir/$params.dset_name/focal_protein/staged"},
-        pattern: "${focal_protein.getSimpleName()}*",
-        mode: 'copy'
-    )
+    // publishDir(
+    //     path: {"$params.data_dir/$params.dset_name/focal_protein/staged"},
+    //     pattern: "*focal_protein*",
+    //     mode: 'copy'
+    // )
 
     input:
     path peptide
     path focal_protein
 
     output:
-    path("*.filt.parquet")
-    path("*.filt.parquet")
+    path("*focal_protein*.parquet"), emit: focal_protein
+    path("*peptide*.parquet"), emit: peptide
 
     script:
     def peptide_out = peptide.getSimpleName() + ".filt.parquet"
@@ -124,6 +124,11 @@ workflow {
   FILT_AND_ANNOT_IN_CLASS(
     CLEAN_IN_CLASS.out,
     CLEAN_IN_CLASS_FOCAL_PROTEIN.out
+  )
+
+  // this will annotate the "filt" pq with the annotated one
+  ANNOTATE_REPRESENTATIVE_PROTEIN_WORKFLOW(
+    FILT_AND_ANNOT_IN_CLASS.out.focal_protein
   )
 
 }

@@ -1,6 +1,4 @@
-// default value, should be overridden (unless testing)
-params.dset_name = "test"
-
+include { ANNOTATE_REPRESENTATIVE_PROTEIN_WORKFLOW }from './subworkflows/local/utils'
 
 process CLEAN_HV1_CLASS {
   label "process_local"
@@ -16,7 +14,7 @@ process CLEAN_HV1_CLASS {
   """
   clean_hv1.py \
     -t ${hv1} \
-    --output 00_hv1_class.cleaned.parquet
+    --output hv1_class_peptide.cleaned.parquet
   """
 }
 
@@ -35,7 +33,7 @@ process CLEAN_HV2_CLASS {
   """
   clean_hv2.py \
     -c ${hv2} \
-    -o 00_hv2_class.cleaned.parquet
+    -o hv2_class_peptide.cleaned.parquet
   """
 }
 
@@ -65,7 +63,7 @@ process COMBINE_HV_CLASS {
 
   combined = pl.concat([hv1, hv2], how="vertical")
 
-  combined.write_parquet("00_hv_class.cleaned.parquet")
+  combined.write_parquet("hv_class_peptide.cleaned.parquet")
   """
 }
 
@@ -83,7 +81,7 @@ process CLEAN_HV_CLASS_FOCAL_PROTEIN {
   """
   clean_hv1_focal_protein.py \
     -f ${fp} \
-    -o 00_hv_class_focal_protein.cleaned.parquet
+    -o hv_class_focal_protein.cleaned.parquet
   """
 }
 
@@ -93,28 +91,28 @@ process FILT_AND_ANNOT_HV_CLASS {
 
     publishDir(
         path: {"$params.data_dir/$params.dset_name/peptide/staged"},
-        pattern: "${peptide.getSimpleName()}*",
+        pattern: "*peptide*",
         mode: 'copy'
     )
-    publishDir(
-        path: {"$params.data_dir/$params.dset_name/focal_protein/staged"},
-        pattern: "${focal_protein.getSimpleName()}*",
-        mode: 'copy'
-    )
+    // publishDir(
+    //     path: {"$params.data_dir/$params.dset_name/focal_protein/staged"},
+    //     pattern: "*focal_protein*",
+    //     mode: 'copy'
+    // )
 
     input:
     path peptide
     path focal_protein
 
     output:
-    path("*.filt.parquet")
-    path("*.filt.parquet")
+    path("*focal_protein*.parquet"), emit: focal_protein
+    path("*peptide*.parquet"), emit: peptide
 
     script:
     def peptide_out = peptide.getSimpleName() + ".filt.parquet"
     def focal_protein_out = focal_protein.getSimpleName() + ".filt.parquet"
     """
-    filt_annot_hv1.py \
+    filt_annot_hv_class.py \
         -p ${peptide} \
         -op ${peptide_out} \
         -f ${focal_protein} \
@@ -132,4 +130,9 @@ workflow {
   CLEAN_HV_CLASS_FOCAL_PROTEIN(Channel.fromPath("data/hv_class/raw/fulldesign_2019-02-27_wGBKsw.fasta"))
 
   FILT_AND_ANNOT_HV_CLASS(COMBINE_HV_CLASS.out, CLEAN_HV_CLASS_FOCAL_PROTEIN.out)
+
+  // this will annotate the "filt" pq with the annotated one
+  ANNOTATE_REPRESENTATIVE_PROTEIN_WORKFLOW(
+    FILT_AND_ANNOT_HV_CLASS.out.focal_protein
+  )
 }

@@ -6,13 +6,13 @@
 #SBATCH --mem=64G
 #SBATCH --time=5-00:00:00
 #SBATCH -c 16
-#SBATCH --output=tmp/nextflow/hv_class/focal_protein/bp3.%j.log
+#SBATCH --output=tmp/nextflow/in_class/focal_protein/bp3.%j.log
 
 . ./scripts/setup.sh
 
 # env vars
-export NXF_LOG_FILE=tmp/nextflow/hv_class/focal_protein/bp3/nextflow.log
+export NXF_LOG_FILE=tmp/nextflow/in_class/focal_protein/bp3/nextflow.log
 
 nextflow run \
     ./workflows/04_bepipred_focal_protein.nf \
-        --dset_name hv_class
+        --dset_name in_class
