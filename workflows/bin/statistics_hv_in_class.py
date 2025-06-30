@@ -12,10 +12,10 @@ from af3_linear_epitopes import statistics_focal as stf
 
 # import dataframes from "staged" directory
 fp_hv_class_dat = pl.read_parquet(
-    "/scratch/sromero/af3-linear-epitopes/data/hv_class/focal_protein/staged/hv_class_focal_protein.filt.clust.parquet"
+    "data/hv_class/focal_protein/staged/hv_class_focal_protein.filt.clust.parquet"
 ).filter(pl.col("representative"))
 hv_class_dat = pl.read_parquet(
-    "/scratch/sromero/af3-linear-epitopes/data/hv_class/peptide/staged/hv_class_peptide.filt.parquet"
+    "data/hv_class/peptide/staged/hv_class_peptide.filt.parquet"
 )
 
 all_statistics_hv_class = st.statistics(
@@ -70,7 +70,7 @@ all_statistics_hv_class = st.pl_avg_weight(
 
 fp_hv_class_dat = stf.pl_fp_extract(
     fp_hv_class_dat,
-    "/scratch/sromero/af3-linear-epitopes/data/hv_class/focal_protein/inference",
+    "data/hv_class/focal_protein/inference",
 )
 all_statistics_hv_class_fp = hv_class_dat.explode(["fp_job_names", "fp_seq_idxs"]).join(
     fp_hv_class_dat, left_on="fp_job_names", right_on="job_name"
@@ -88,7 +88,7 @@ all_statistics_hv_class_fp = all_statistics_hv_class_fp.with_columns(
 all_statistics_hv_class_fp = stf.fp_pLDDT_score_9mer(all_statistics_hv_class_fp)
 all_statistics_hv_class_fp = st.pl_9mer_weight(
     all_statistics_hv_class_fp,
-    "/scratch/sromero/af3-linear-epitopes/data/hv_class/peptide/inference",
+    "data/hv_class/peptide/inference",
 )
 
 all_statistics_hv_class.write_parquet(
