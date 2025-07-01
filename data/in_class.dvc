@@ -1,0 +1,6 @@
+outs:
+- md5: a7bc25b3cf23d21c6f7b6dc3fb98f89b.dir
+  size: 223945550
+  nfiles: 16
+  hash: md5
+  path: in_class

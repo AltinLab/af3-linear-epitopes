@@ -1,0 +1,6 @@
+outs:
+- md5: 00547091f71e8858a76657deed3dffb5.dir
+  size: 188315165
+  nfiles: 11
+  hash: md5
+  path: in_seg

@@ -1,4 +1,6 @@
 [core]
     remote = origin
+[cache]
+    type = "reflink,copy"
 ['remote "origin"']
     url = /tgen_labs/altin/dvc/af3-linear-epitopes
