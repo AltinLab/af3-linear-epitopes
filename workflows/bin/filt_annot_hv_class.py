@@ -10,8 +10,13 @@ Take the non-epitope, epitope, and focal protein datasets, and filter them down 
 
 Then, annotate non-epitope and epitope with a list column that contains the seq_ids
 of the associated focal proteins and the indices into those sequences
+
+Finally, add segmentation boolean masks and localization lists to focal proteins.
 """
-from af3_linear_epitopes.utils import set_30mer_indices_to_true
+from af3_linear_epitopes.utils import (
+    set_30mer_indices_to_true,
+    segment_boolmask_to_localization_list,
+)
 import polars as pl
 import argparse
 
@@ -134,10 +139,23 @@ if __name__ == "__main__":
             .alias("epitope_30mer_segment_boolmask")
         )
     )
+
+    match_df_all = match_df_all.with_columns(
+        pl.col("epitope_30mer_segment_boolmask")
+        .map_elements(
+            segment_boolmask_to_localization_list,
+            return_dtype=pl.List(pl.List(pl.Int64)),
+        )
+        .alias("epitope_localization_list")
+    )
+
     # filter focal proteins down to only the proteins that contain >1 epitope and >=1 nonepitope
     # this is a control
     fp_df = fp_df.join(
-        match_df_all.select("job_name", "epitope_30mer_segment_boolmask"), on="job_name"
+        match_df_all.select(
+            "job_name", "epitope_30mer_segment_boolmask", "epitope_localization_list"
+        ),
+        on="job_name",
     ).sort(by="job_name")
 
     # annotate epitope and nonepitope df with the job_names and indices into those job_names

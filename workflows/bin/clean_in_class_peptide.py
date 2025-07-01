@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 """
-Files:
-- IN1_deconv_240_deconvParse_nonspecificPepsRM_maxPerSample: Enriched/reactive peptides for each donor were aggregated on a per-species basis. Each enriched peptide contributes some amount (deconv score)
-    towards a species for the donors it reacted to based on the number of 7-mers the peptide shared with that species.
-    Max per sample means that the highest score for each species was taken for each donor across samples taken longitudinally.
-    Deconv score (cell values) can be thought of as a "likelihood that a donor was infected by a particular species"
-- IM0154_IM0162_IN1_trunc86_Z-HDI95_max.tsv.gz: Z scores from pepseq for each peptide.
-This script will filter original IN1 dataset into IN1 (non-epitopes) and IN2 (epitopes) using the following rules:
+This script will filter original IN1 dataset into non-epitopes and epitopes using the following rules:
 
 - Epitope peptides and non-epitope peptides must have an EK thresh <= PROP_EK_THRESH and not be listed in 'removed_EK_Peptides.tsv'
 - Focal species are defined as species that have a nonzero deconv (IN1_deconv...) score for >= FOCAL_SPECIES_MIN_NUM_DONORS_THRESH donors OR have a total deconv score
@@ -15,7 +9,7 @@ This script will filter original IN1 dataset into IN1 (non-epitopes) and IN2 (ep
 - Epitope peptides must come from focal species
 - Epitope peptides must have at least a z-score of >= EPITOPE_Z_SCORE_THRESH across at least EPITOPE_MIN_NUM_DONORS_THRESH focal donors
 - Non-epitopes must come from a focal species (because they'll be filtered down to that subset anyways in the next step)
-- Non-eptiopes must have a z-score <= NON_EPITOPE_Z_SCORE_THRESH for all donors (not just focal donors)
+- Non-epitopes must have a z-score <= NON_EPITOPE_Z_SCORE_THRESH for all donors (not just focal donors)
 
 Additionally, each protein is annotated with its pre-C-to-S substitution sequence
 for later key joining with focal proteins
