@@ -148,11 +148,102 @@ def raw_beta_indices_bool(sel):
     return beta_resindices_boolmask.tolist()
 
 
+def raw_loop_indices_bool(sel):
+    # find helices
+    # https://docs.mdanalysis.org/2.8.0/documentation_pages/analysis/dssp.html
+    beta_resindices_boolmask = DSSP(sel).run().results.dssp_ndarray[0, :, 0]
+    return beta_resindices_boolmask.tolist()
+
+
+# Recreating an error code:______________________________________________________
+def pl_structure_error(dataset, path):
+    beta_dataset = split_apply_combine(dataset, beta_error, path, chunksize=CHUNKSIZE)
+    beta_helix_dataset = split_apply_combine(
+        beta_dataset, helix_error, path, chunksize=CHUNKSIZE
+    )
+    beta_helix_loop_dataset = split_apply_combine(
+        beta_helix_dataset, loop_error, path, chunksize=CHUNKSIZE
+    )
+    beta_helix_loop_dataset = beta_helix_loop_dataset.with_columns(
+        (pl.col("helix") / 30).alias("helix_percentage"),
+        (pl.col("beta") / 30).alias("beta_sheet_percentage"),
+        (pl.col("loop") / 30).alias("loop_percentage"),
+    )
+    return beta_helix_loop_dataset
+
+
+def loop_error(row, path):
+    af3 = AF3Output(Path(path) / row["fp_job_names"])
+    u = af3.get_mda_universe()
+    row["loop"] = sum(raw_loop_indices_bool(u))
+    return row
+
+
+# finding the beta pleats of the 30-mer
+def beta_error(row, path):
+    af3 = AF3Output(Path(path) / row["fp_job_names"])
+    u = af3.get_mda_universe()
+    row["beta"] = sum(raw_beta_indices_bool(u))
+    return row
+
+
+# finding the helix's of the 30mers
+def helix_error(row, path):
+    af3 = AF3Output(Path(path) / row["fp_job_names"])
+    u = af3.get_mda_universe()
+    row["helix"] = sum(raw_helix_indices_bool(u))
+    return row
+
+
+# ___________________________________________________________
+
+
+def pl_structure(dataset, path):
+    beta_dataset = split_apply_combine(dataset, beta, path, chunksize=CHUNKSIZE)
+    beta_helix_dataset = split_apply_combine(
+        beta_dataset, helix, path, chunksize=CHUNKSIZE
+    )
+    beta_helix_loop_dataset = split_apply_combine(
+        beta_helix_dataset, loop, path, chunksize=CHUNKSIZE
+    )
+    beta_helix_loop_dataset = beta_helix_loop_dataset.with_columns(
+        (pl.col("helix") / 30).alias("helix_percentage"),
+        (pl.col("beta") / 30).alias("beta_sheet_percentage"),
+        (pl.col("loop") / 30).alias("loop_percentage"),
+    )
+    return beta_helix_loop_dataset
+
+
+def pl_structure_fp(dataset, path):
+    dataset = split_apply_combine(dataset, structure, path, chunksize=CHUNKSIZE)
+    return dataset
+
+
+def structure(row, path):
+    af3 = AF3Output(Path(path) / row["fp_job_names"])
+    u = af3.get_mda_universe()
+    index = row["fp_seq_idxs"]
+    row["loop"] = raw_loop_indices_bool(u)
+    row["beta"] = raw_beta_indices_bool(u)
+    row["helix"] = raw_helix_indices_bool(u)
+    row["loop"] = sum(row["loop"][index : index + 30])
+    row["beta"] = sum(row["beta"][index : index + 30])
+    row["helix"] = sum(row["helix"][index : index + 30])
+    return row
+
+
+def loop(row, path):
+    af3 = AF3Output(Path(path) / row["job_name"])
+    u = af3.get_mda_universe()
+    row["loop"] = sum(raw_loop_indices_bool(u))
+    return row
+
+
 # finding the beta pleats of the 30-mer
 def beta(row, path):
     af3 = AF3Output(Path(path) / row["job_name"])
     u = af3.get_mda_universe()
-    row["beta"] = raw_beta_indices_bool(u)
+    row["beta"] = sum(raw_beta_indices_bool(u))
     return row
 
 
@@ -165,8 +256,7 @@ def pl_beta(dataset, path):
 def helix(row, path):
     af3 = AF3Output(Path(path) / row["job_name"])
     u = af3.get_mda_universe()
-
-    row["helix"] = raw_helix_indices_bool(u)
+    row["helix"] = sum(raw_helix_indices_bool(u))
     return row
 
 
@@ -300,21 +390,33 @@ def statistics(dataset, path):
 
 
 # normalizing the pLDDT values
-def normalized_pLDDT_30mer(dataset, colname: str):
+def normalized_pLDDT_30mer(dataset, colname: str, inverse: int):
     max_pLDDT = dataset.select(pl.col(colname)).max().item()
     print("max:" + str(max_pLDDT))
     min_pLDDT = dataset.select(pl.col(colname)).min().item()
     print("min:" + str(min_pLDDT))
-    normalized_series = (
-        dataset.with_columns(
-            ((1 - (pl.col(colname) - min_pLDDT) / (max_pLDDT - min_pLDDT))).alias(
-                "normalized_pLDDT"
+    if inverse == -1:
+        normalized_series = (
+            dataset.with_columns(
+                ((1 - (pl.col(colname) - min_pLDDT) / (max_pLDDT - min_pLDDT))).alias(
+                    "normalized_pLDDT"
+                )
             )
+            .select(pl.col("normalized_pLDDT"))
+            .to_series()
+            .to_numpy()
         )
-        .select(pl.col("normalized_pLDDT"))
-        .to_series()
-        .to_numpy()
-    )
+    else:
+        normalized_series = (
+            dataset.with_columns(
+                (((pl.col(colname) - min_pLDDT) / (max_pLDDT - min_pLDDT))).alias(
+                    "normalized_pLDDT"
+                )
+            )
+            .select(pl.col("normalized_pLDDT"))
+            .to_series()
+            .to_numpy()
+        )
     return normalized_series
 
 
@@ -363,15 +465,131 @@ def pl_std(dataset, path):
     return std_dataset
 
 
-if __name__ == "__main__":
-    peptide_test_dat = pl.read_parquet(
-        "/scratch/sromero/af3-linear-epitopes/data/test/peptide/staged/00_hv.filt.parquet"
-    )
+# box and whisker plot
+def display_boxplot(data, title="Box and Whisker Plot", x_label="", y_label="Value"):
+    """
+    Displays a box and whisker plot for the given data using Matplotlib and Polars.
 
-    pl_mean(
-        peptide_test_dat,
-        "/scratch/sromero/af3-linear-epitopes/data/test/peptide/inference",
-    )
+    Args:
+        data (list, numpy.ndarray, polars.Series, polars.DataFrame, or dict/list of such):
+            The data to plot.
+            - If a single list, numpy.ndarray, or polars.Series: a single box plot.
+            - If a polars.DataFrame:
+                - If it has one numeric column, that column will be plotted.
+                - If it has multiple numeric columns, each will get a box plot.
+                - If it has a 'category' column and a 'value' column, it will plot
+                  box plots per category.
+            - If a dictionary: keys are categories, values are lists/arrays/Series of data.
+            - If a list of lists/arrays/Series: each inner list/array/Series represents a category.
+        title (str, optional): The title of the plot. Defaults to "Box and Whisker Plot".
+        x_label (str, optional): The label(s) for the x-axis.
+                                 - If a string, used as the overall x-axis label.
+                                 - If a list of strings, used as tick labels for multiple categories.
+                                 Defaults to an empty string.
+        y_label (str, optional): The label for the y-axis. Defaults to "Value".
+    """
+    plot_data = []
+    category_labels = []
+
+    # --- Data Preparation Logic using Polars ---
+    if isinstance(data, (list, np.ndarray)):
+        # Single dataset (list or numpy array)
+        plot_data.append(data)
+        category_labels.append("")  # No specific category label for a single plot
+    elif isinstance(data, pl.Series):
+        # Single Polars Series
+        plot_data.append(data.to_list())
+        category_labels.append("")
+    elif isinstance(data, pl.DataFrame):
+        # Polars DataFrame handling
+        if "category" in data.columns and "value" in data.columns:
+            # Assume long format: 'category' column for grouping, 'value' for data
+            grouped = data.group_by("category").agg(
+                pl.col("value").list().alias("values")
+            )
+            for row in grouped.iter_rows(named=True):
+                plot_data.append(row["values"])
+                category_labels.append(str(row["category"]))
+            if not x_label:
+                x_label = "Category"
+        else:
+            # Plot each numeric column as a separate box
+            for col_name in data.columns:
+                if data[col_name].dtype.is_numeric():  # Check if column is numeric
+                    plot_data.append(data[col_name].to_list())
+                    category_labels.append(col_name)
+            if not x_label:
+                x_label = "Columns"  # Default label for multiple columns
+
+    elif isinstance(data, dict):
+        # Dictionary of datasets (keys are categories)
+        for key, value in data.items():
+            if isinstance(value, pl.Series):
+                plot_data.append(value.to_list())
+            elif isinstance(value, (list, np.ndarray)):
+                plot_data.append(value)
+            else:
+                print(
+                    f"Warning: Skipping unsupported data type for key '{key}' in dictionary."
+                )
+                continue
+            category_labels.append(str(key))
+        if not x_label:
+            x_label = "Category"
+
+    elif isinstance(data, list) and all(
+        isinstance(d, (list, np.ndarray, pl.Series)) for d in data
+    ):
+        # List of datasets (each element is a category)
+        for i, dataset in enumerate(data):
+            if isinstance(dataset, pl.Series):
+                plot_data.append(dataset.to_list())
+            elif isinstance(dataset, (list, np.ndarray)):
+                plot_data.append(dataset)
+            else:
+                continue  # Should not happen due to all() check
+            cat_label = f"Category {i+1}"
+            if isinstance(x_label, list) and i < len(x_label):
+                cat_label = x_label[i]
+            category_labels.append(cat_label)
+        if not x_label:
+            x_label = "Category"
+    else:
+        print(
+            "Error: Unsupported data format. Please provide a list, numpy array, polars Series/DataFrame, or a list/dictionary of such for multiple plots."
+        )
+        return
+
+    # --- Plotting with Matplotlib ---
+    if not plot_data:
+        print("No valid data to plot.")
+        return
+
+    plt.figure(figsize=(8, 6))
+
+    # Handle single vs. multiple box plots
+    if (
+        len(plot_data) == 1 and not category_labels[0]
+    ):  # Single plot, no explicit category
+        plt.boxplot(plot_data[0])
+        plt.tick_params(
+            axis="x", which="both", bottom=False, top=False, labelbottom=False
+        )  # Hide x-axis ticks/labels
+    else:
+        plt.boxplot(plot_data)
+        if category_labels and all(category_labels):  # If we have valid category labels
+            plt.xticks(
+                ticks=np.arange(1, len(category_labels) + 1),
+                labels=category_labels,
+                rotation=45,
+                ha="right",
+            )
+        plt.xlabel(x_label)  # Set x-axis label if provided
+    plt.title(title)
+    plt.ylabel(y_label)
+    plt.grid(axis="y", linestyle="--", alpha=0.7)
+    plt.tight_layout()
+    plt.show()
 
 
 # the code below are functions to create the bar graphs and AUC curves
@@ -602,3 +820,55 @@ def plot_auc_roc_curve(
 
     plt.tight_layout()
     return fig
+
+
+# dot plot against two arrays
+def plot_dot_plot(
+    x_values,
+    y_values,
+    title="Dot Plot",
+    x_label="X-axis",
+    y_label="Y-axis",
+    marker_style="o",
+    marker_color="blue",
+    alpha=0.7,
+    figsize=(8, 6),
+):
+    """
+    Plots two arrays against each other as a dot plot (scatter plot).
+
+    Args:
+        x_values (list or numpy.ndarray): The values for the x-axis.
+        y_values (list or numpy.ndarray): The values for the y-axis.
+                                          Must have the same length as x_values.
+        title (str, optional): The title of the plot. Defaults to "Dot Plot".
+        x_label (str, optional): The label for the x-axis. Defaults to "X-axis".
+        y_label (str, optional): The label for the y-axis. Defaults to "Y-axis".
+        marker_style (str, optional): The style of the markers. E.g., 'o' for circles,
+                                      'x' for 'x's, '*' for stars. Defaults to 'o'.
+        marker_color (str, optional): The color of the markers. E.g., 'blue', 'red',
+                                      'green', '#FF5733'. Defaults to 'blue'.
+        alpha (float, optional): The transparency of the markers (0.0 to 1.0).
+                                 Useful for visualizing dense data. Defaults to 0.7.
+        figsize (tuple, optional): The size of the figure (width, height) in inches.
+                                   Defaults to (8, 6).
+    """
+    if len(x_values) != len(y_values):
+        print("Error: x_values and y_values must have the same length.")
+        return
+
+    plt.figure(figsize=figsize)  # Set the figure size
+
+    # Create the scatter plot
+    plt.scatter(
+        x_values, y_values, marker=marker_style, color=marker_color, alpha=alpha
+    )
+
+    # Add labels and title
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+
+    plt.grid(True, linestyle="--", alpha=0.6)  # Add a grid for better readability
+    plt.tight_layout()  # Adjust layout to prevent labels from overlapping
+    plt.show()

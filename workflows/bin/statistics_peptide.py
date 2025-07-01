@@ -12,7 +12,7 @@ from af3_linear_epitopes import statistics_focal as stf
 
 # import dataframes from "staged" directory
 fp_test_dat = pl.read_parquet(
-    "/scratch/sromero/af3-linear-epitopes/data/hv/focal_protein/staged/00_focal_protein.filt.parquet"
+    "../data/hv/focal_protein/staged/00_focal_protein.filt.parquet"
 )
 peptide_test_dat = pl.read_parquet("data/hv/peptide/staged/00_hv.filt.parquet")
 
@@ -37,13 +37,9 @@ all_statistics = st.pae_statistics(
     all_statistics,
     "data/hv/peptide/inference",
 )
-all_statistics = st.pl_avg_weight(
-    all_statistics, "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference"
-)
+all_statistics = st.pl_avg_weight(all_statistics, "data/hv/peptide/inference")
 
-all_statistics = st.pl_helix(
-    all_statistics, "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference"
-)
+all_statistics = st.pl_helix(all_statistics, "data/hv/peptide/inference")
 all_statistics = all_statistics.with_columns(
     (
         (
@@ -54,9 +50,7 @@ all_statistics = all_statistics.with_columns(
     ).alias("true__helix_percentage")
 )
 
-all_statistics = st.pl_beta(
-    all_statistics, "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference"
-)
+all_statistics = st.pl_beta(all_statistics, " data/hv/peptide/inference")
 all_statistics = all_statistics.with_columns(
     (
         (
@@ -86,7 +80,6 @@ all_statistics_fp = all_statistics_fp.with_columns(
 
 all_statistics_fp = stf.fp_pLDDT_score_9mer(
     all_statistics_fp,
-    "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference",
 )
 all_statistics_fp = st.pl_9mer_weight(
     all_statistics_fp, "/scratch/sromero/af3-linear-epitopes/data/hv/peptide/inference"

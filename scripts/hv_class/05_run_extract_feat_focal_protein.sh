@@ -6,14 +6,14 @@
 #SBATCH --mem=64G
 #SBATCH --time=5-00:00:00
 #SBATCH -c 16
-#SBATCH --output=tmp/nextflow/hv/focal_protein/extract_feat.%j.log
+#SBATCH --output=tmp/nextflow/hv_class/focal_protein/extract_feat.%j.log
 
 . ./scripts/setup.sh
 
 # env vars
-export NXF_LOG_FILE=tmp/nextflow/hv/focal_protein/extract_feat/nextflow.log
-export NXF_CACHE_DIR=tmp/nextflow/hv/focal_protein/extract_feat/
+export NXF_LOG_FILE=tmp/nextflow/hv_class/focal_protein/extract_feat/nextflow.log
+export NXF_CACHE_DIR=tmp/nextflow/hv_class/focal_protein/extract_feat/
 
 nextflow run \
     ./workflows/05_extract_feat_focal_protein.nf \
-        --dset_name hv
+        --dset_name hv_class
