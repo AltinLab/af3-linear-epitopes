@@ -24,16 +24,6 @@ all_statistics_in_class_fp = pl.read_parquet(
     "../../data/in_class/focal_protein/staged/01_in_class.exploded.parquet"
 )
 
-
-in_class_dat
-
-
-fp_in_class_dat
-
-
-all_statistics_in_class_fp
-
-
 y = all_statistics_in_class_fp.select("epitope").to_series()
 print(len(y))
 y_hat_fp_30mer = st.normalized_pLDDT_30mer(
