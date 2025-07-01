@@ -8,12 +8,10 @@
 #SBATCH --time=1:00:00
 #SBATCH --output=tmp/nextflow/bp3c50id/clean_raw_data.%j.log
 
-. ./scripts/setup.sh
-
 # env vars
 export NXF_LOG_FILE=tmp/nextflow/bp3c50id/clean_raw_data/nextflow.log
 export NXF_CACHE_DIR=tmp/nextflow/bp3c50id/clean_raw_data/
 
-nextflow run \
+conda run -n nf-core --live-stream nextflow run \
     ./workflows/00_clean_raw_data.bp3c50id.nf \
         --dset_name bp3c50id

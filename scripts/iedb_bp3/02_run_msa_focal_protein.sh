@@ -8,12 +8,11 @@
 #SBATCH -c 16
 #SBATCH --output=tmp/nextflow/iedb_bp3/focal_protein/msa.%j.log
 
-. ./scripts/setup.sh
 
 # env vars
 export NXF_LOG_FILE=tmp/nextflow/iedb_bp3/focal_protein/msa/nextflow.log
 export NXF_CACHE_DIR=tmp/nextflow/iedb_bp3/focal_protein/msa/
 
-nextflow run \
+conda run -n nf-core --live-stream nextflow run \
     ./workflows/02_msa_focal_protein.nf \
         --dset_name iedb_bp3
