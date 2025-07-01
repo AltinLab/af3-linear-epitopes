@@ -3,12 +3,6 @@
 
 ## Setup
 
-Create a .env file in the project root:
-
-```bash
-CONDA_PREFIX=/path/to/conda/installation
-```
-
 Swap the path in `envs/env.yaml` to the project root to your cloned path:
 
 ```yaml

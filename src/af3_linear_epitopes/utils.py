@@ -185,3 +185,30 @@ def set_30mer_indices_to_true(row_struct):
     for idx in indices:
         boolmask[idx : idx + 30] = True
     return boolmask.tolist()
+
+
+def segment_boolmask_to_localization_list(seg_boolmask):
+
+    seg_boolmask_np = np.array(seg_boolmask)
+
+    # 1D island identification
+    in_island = False
+    start_idx = None
+    islands = []
+
+    for i in range(len(seg_boolmask_np)):
+
+        # start new island
+        if not in_island and seg_boolmask_np[i]:
+            in_island = True
+            start_idx = i
+
+        # end island
+        elif in_island and (
+            (not seg_boolmask_np[i]) or (i == (len(seg_boolmask_np) - 1))
+        ):
+            in_island = False
+            end_idx = i if not seg_boolmask_np[i] else i + 1
+            islands.append([start_idx, end_idx])
+
+    return islands

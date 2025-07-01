@@ -8,11 +8,9 @@
 #SBATCH -c 16
 #SBATCH --output=tmp/nextflow/test/focal_protein/bp3.%j.log
 
-. ./scripts/setup.sh
-
 # env vars
 export NXF_LOG_FILE=tmp/nextflow/test/focal_protein/bp3/nextflow.log
 
-nextflow run \
+conda run -n nf-core --live-stream nextflow run \
     ./workflows/04_bepipred_focal_protein.nf \
         --dset_name test

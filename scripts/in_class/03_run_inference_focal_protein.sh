@@ -14,7 +14,7 @@
 export NXF_LOG_FILE=tmp/nextflow/in_class/focal_protein/inference/nextflow.log
 export NXF_CACHE_DIR=tmp/nextflow/in_class/focal_protein/inference/
 
-nextflow run \
+conda run -n nf-core --live-stream nextflow run \
     ./workflows/03_inference_focal_protein.nf \
         --dset_name in_class \
         --seeds 1,2,3,4,5,6,7,8,9,10

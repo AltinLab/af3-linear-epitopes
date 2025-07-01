@@ -14,6 +14,6 @@
 export NXF_LOG_FILE=tmp/nextflow/in_class/focal_protein/msa/nextflow.log
 export NXF_CACHE_DIR=tmp/nextflow/in_class/focal_protein/msa/
 
-nextflow run \
+conda run -n nf-core --live-stream nextflow run \
     ./workflows/02_msa_focal_protein.nf \
         --dset_name in_class

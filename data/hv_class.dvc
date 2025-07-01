@@ -1,0 +1,6 @@
+outs:
+- md5: eb049ab0ebaa70f9b85924bcaa8b3f1c.dir
+  size: 599313116
+  nfiles: 12
+  hash: md5
+  path: hv_class

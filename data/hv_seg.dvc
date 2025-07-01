@@ -1,0 +1,6 @@
+outs:
+- md5: 5b6d958772a0083cfb87f10d3dc2cf8a.dir
+  size: 2031688374
+  nfiles: 7
+  hash: md5
+  path: hv_seg
