@@ -12,10 +12,10 @@ from af3_linear_epitopes import statistics_focal as stf
 
 # import dataframes from "staged" directory
 fp_in_class_dat = pl.read_parquet(
-    "/scratch/sromero/af3-linear-epitopes/data/in_class/focal_protein/staged/in_class_focal_protein.filt.clust.parquet"
+    "data/in_class/focal_protein/staged/in_class_focal_protein.filt.clust.parquet"
 ).filter(pl.col("representative"))
 in_class_dat = pl.read_parquet(
-    "/scratch/sromero/af3-linear-epitopes/data/in_class/peptide/staged/in_class_peptide.filt.parquet"
+    "data/in_class/peptide/staged/in_class_peptide.filt.parquet"
 )
 
 # all_statistics_in_class = st.statistics(
@@ -70,7 +70,7 @@ in_class_dat = pl.read_parquet(
 
 fp_in_class_dat = stf.pl_fp_extract(
     fp_in_class_dat,
-    "/scratch/sromero/af3-linear-epitopes/data/in_class/focal_protein/inference",
+    "data/in_class/focal_protein/inference",
 )
 all_statistics_in_class_fp = in_class_dat.explode(["fp_job_names", "fp_seq_idxs"]).join(
     fp_in_class_dat, left_on="fp_job_names", right_on="job_name"

@@ -42,7 +42,7 @@ all_statistics_hv_class_fp = pl.read_parquet(
     "../../data/hv_class/focal_protein/staged/01_hv_class.exploded.parquet"
 )
 rsa_data = pl.read_parquet(
-    "/scratch/sromero/af3-linear-epitopes/data/hv_class/focal_protein/staged/05_focal_protein.rsa.parquet"
+    "../../data/hv_class/focal_protein/staged/05_focal_protein.rsa.parquet"
 ).filter(pl.col("representative"))
 
 
