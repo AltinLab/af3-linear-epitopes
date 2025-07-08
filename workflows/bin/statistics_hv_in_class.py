@@ -90,10 +90,17 @@ all_statistics_hv_class_fp = st.pl_9mer_weight(
     all_statistics_hv_class_fp,
     "data/hv_class/peptide/inference",
 )
+all_statistics_hv_class_error_fp = st.pl_structure_error(
+    all_statistics_hv_class_fp,
+    "data/hv_class/focal_protein/inference",
+)
 
 all_statistics_hv_class.write_parquet(
     "data/hv_class/peptide/staged/01_hv_class.features.parquet"
 )
 all_statistics_hv_class_fp.write_parquet(
     "data/hv_class/focal_protein/staged/01_hv_class.exploded.parquet"
+)
+all_statistics_hv_class_error_fp.write_parquet(
+    "data/hv_class/focal_protein/staged/01_hv_class.error.parquet"
 )

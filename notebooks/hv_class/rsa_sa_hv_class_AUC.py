@@ -70,13 +70,13 @@ all_statistics_hv_class_fp = st.rsa_mean(all_statistics_hv_class_fp)
 
 # %%
 y_hat_RSA_fp = st.normalized_pLDDT_30mer(
-    all_statistics_hv_class_fp, "mean_rsa_slice", -1
+    all_statistics_hv_class_fp, "mean_rsa_slice", 0
 )
 y_true_RSA = all_statistics_hv_class_fp.select(pl.col("epitope"))
 inverse_norm_rsa_mean_30mer_fp_hv_class = st.plot_auc_roc_curve(
     y_true_RSA,
     y_hat_RSA_fp,
-    "hv_class inverse Normalized mean RSA values for 30mer fp ROC",
+    "hv_class Normalized mean RSA values for 30mer fp ROC",
 )
 inverse_norm_rsa_mean_30mer_fp_hv_class.savefig(
     "../../results/figures/inverse_norm_rsa_mean_30mer_fp_hv_class.png"

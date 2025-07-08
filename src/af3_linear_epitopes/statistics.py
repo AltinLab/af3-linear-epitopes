@@ -7,9 +7,31 @@ from mdaf3.FeatureExtraction import *
 from mdaf3.AF3OutputParser import AF3Output
 from pathlib import Path
 from sklearn.metrics import roc_curve, auc
+import matplotlib.patches as mpatches
 
 # adds the basic statistic data(ex: mean, min, and standard deviation) to the dataset
 CHUNKSIZE = 15
+
+
+def polar_charge(row):
+    polar_amino_acid = ["S", "T", "N", "Q", "C", "Y", "D", "E", "K", "R", "H"]
+    non_polar_amino_acid = ["A", "V", "L", "I", "P", "F", "W", "M", "G"]
+    seq = row["peptide"]
+    polar_count = 0
+    non_polar = 0
+    for i in range(0, len(seq)):
+        if seq[i] in polar_amino_acid:
+            polar_count += 1
+        else:
+            non_polar += 1
+    row["polar"] = polar_count
+    row["non_polar"] = non_polar
+    return row
+
+
+def pl_polar_charge(dataset, path):
+    amino_polar_charge = split_apply_combine(dataset, polar_charge, chunksize=CHUNKSIZE)
+    return amino_polar_charge
 
 
 # mean rsa value
@@ -71,7 +93,7 @@ def amino_acid_freq(row, path):
     for i in range(0, len(seq)):
         amino_acids[seq[i]] += 1
     row["most_frequent_amino_acid"] = max_key = max(amino_acids, key=amino_acids.get)
-    row["amino_acid_count"] = amino_acids[max_key]
+    row["amino_acid_count"] = amino_acids
     return row
 
 
@@ -871,4 +893,142 @@ def plot_dot_plot(
 
     plt.grid(True, linestyle="--", alpha=0.6)  # Add a grid for better readability
     plt.tight_layout()  # Adjust layout to prevent labels from overlapping
+    plt.show()
+
+
+def plot_dictionary_bar_chart(
+    data_dict: dict[str, float],
+    title: str = "Comparison of Values per Category",
+    x_label: str = "Category",
+    y_label: str = "Value",
+    sort_by_value: bool = False,  # Set to True to sort bars by their height
+):
+    polar_amino_acid = ["S", "T", "N", "Q", "C", "Y", "D", "E", "K", "R", "H"]
+    """
+    Plots a bar chart for a dictionary where keys map to single float values.
+
+    Args:
+        data_dict (dict[str, float]): A dictionary where keys are category names (str)
+                                      and values are single numerical data points (float or int).
+        title (str, optional): The main title for the plot.
+        x_label (str, optional): The label for the x-axis (categories).
+        y_label (str, optional): The label for the y-axis (values).
+        sort_by_value (bool, optional): If True, bars will be sorted by their value (height).
+                                        Defaults to False (sorted by key name).
+        bar_color (str, optional): The color of the bars. Defaults to 'skyblue'.
+    """
+    if not data_dict:
+        print("Error: The input dictionary is empty. No chart to plot.")
+        return
+
+    # Extract keys and values
+    if sort_by_value:
+        # Sort items by value (ascending)
+        sorted_items = sorted(data_dict.items(), key=lambda item: item[1])
+        keys = [item[0] for item in sorted_items]
+        values = [item[1] for item in sorted_items]
+    else:
+        # Sort items by key name (alphabetical) for consistent order if not sorting by value
+        sorted_items = sorted(data_dict.items())
+        keys = [item[0] for item in sorted_items]
+        values = [item[1] for item in sorted_items]
+
+    colors_by_threshold = ["blue" if v in polar_amino_acid else "red" for v in keys]
+    import matplotlib.patches as mpatches
+
+    red_patch = mpatches.Patch(color="red", label="Non-Polar amino acid")
+    blue_patch = mpatches.Patch(color="blue", label="Polar amino acid")
+
+    # Create the bar chart
+    plt.figure(figsize=(10, 6))  # Adjust figure size as needed
+    plt.bar(keys, values, color=colors_by_threshold)
+    # Add labels and title
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+
+    # Rotate x-axis labels if there are many categories to prevent overlap
+    if len(keys) > 5:  # Arbitrary threshold, adjust as needed
+        plt.xticks(rotation=45, ha="right")
+
+    plt.grid(axis="y", linestyle="--", alpha=0.7)  # Add horizontal grid lines
+    plt.tight_layout()  # Adjust layout to prevent labels from overlapping
+    plt.legend(handles=[red_patch, blue_patch])
+    plt.show()
+
+
+def plot_p_values_bar_chart(
+    data_dict: dict[str, float],
+    title: str = "Comparison of Values per Category",
+    x_label: str = "Category",
+    y_label: str = "Value",
+    sort_by_value: bool = False,  # Set to True to sort bars by their height
+):
+    polar_amino_acid = ["S", "T", "N", "Q", "C", "Y", "D", "E", "K", "R", "H"]
+    """
+    Plots a bar chart for a dictionary where keys map to single float values.
+
+    Args:
+        data_dict (dict[str, float]): A dictionary where keys are category names (str)
+                                      and values are single numerical data points (float or int).
+        title (str, optional): The main title for the plot.
+        x_label (str, optional): The label for the x-axis (categories).
+        y_label (str, optional): The label for the y-axis (values).
+        sort_by_value (bool, optional): If True, bars will be sorted by their value (height).
+                                        Defaults to False (sorted by key name).
+        bar_color (str, optional): The color of the bars. Defaults to 'skyblue'.
+    """
+    if not data_dict:
+        print("Error: The input dictionary is empty. No chart to plot.")
+        return
+
+    # Extract keys and values
+    if sort_by_value:
+        # Sort items by value (ascending)
+        sorted_items = sorted(data_dict.items(), key=lambda item: item[1])
+        keys = [item[0] for item in sorted_items]
+        values = [item[1] for item in sorted_items]
+    else:
+        # Sort items by key name (alphabetical) for consistent order if not sorting by value
+        sorted_items = sorted(data_dict.items())
+        keys = [item[0] for item in sorted_items]
+        values = [item[1] for item in sorted_items]
+    import matplotlib.patches as mpatches
+
+    colors_by_threshold = ["blue" if v in polar_amino_acid else "red" for v in keys]
+
+    red_patch = mpatches.Patch(color="red", label="Non-Polar amino acid")
+    blue_patch = mpatches.Patch(color="blue", label="Polar amino acid")
+
+    # Create the bar chart
+    plt.figure(figsize=(10, 6))  # Adjust figure size as needed
+    plt.bar(keys, values, color=colors_by_threshold)
+
+    # Set the y-axis to a logarithmic scale
+    plt.yscale("log")
+
+    # Add a dotted black horizontal line at y = 0.05
+    # The `axhline` function adds a horizontal line across the axis.
+    # `linestyle=':'` creates a dotted line, and `color='black'` sets its color.
+    plt.axhline(y=0.05, color="black", linestyle=":", label="Threshold at 0.05")
+
+    # Add labels and title
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+
+    # Rotate x-axis labels if there are many categories to prevent overlap
+    if len(keys) > 5:  # Arbitrary threshold, adjust as needed
+        plt.xticks(rotation=45, ha="right")
+
+    plt.grid(axis="y", linestyle="--", alpha=0.7)  # Add horizontal grid lines
+    plt.tight_layout()  # Adjust layout to prevent labels from overlapping
+    plt.legend(
+        handles=[
+            red_patch,
+            blue_patch,
+            mpatches.Patch(color="black", linestyle=":", label="Threshold at 0.05"),
+        ],
+        loc="upper left",
+    )
     plt.show()
